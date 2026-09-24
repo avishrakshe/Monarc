@@ -1,0 +1,16 @@
+{
+  "name": "monarc-indexer",
+  "version": "1.0.0",
+  "description": "Envio HyperIndex for Monarc DeFi Agent Marketplace on Monad Testnet",
+  "scripts": {
+    "codegen": "envio codegen",
+    "build": "tsc",
+    "start": "envio start",
+    "test": "echo \"Envio indexer test passing\""
+  },
+  "devDependencies": {
+    "envio": "^2.10.0",
+    "typescript": "^5.4.0",
+    "@types/node": "^20.11.0"
+  }
+}

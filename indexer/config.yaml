@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+name: MonarcIndexer
+description: Envio HyperIndex for Monarc DeFi Agent Marketplace on Monad Testnet
+ecosystem: evm
+schema: ./schema.graphql
+
+networks:
+  - id: 10143 # Monad Testnet
+    rpc_config:
+      url: https://testnet-rpc.monad.xyz
+    hypersync_config:
+      url: https://monad-testnet.hypersync.xyz
+    start_block: 0
+    contracts:
+      - name: IdentityRegistry
+        abi_file_path: ./abis/IdentityRegistry.json
+        address:
+          - "0x0000000000000000000000000000000000000000" # Replaced dynamically with deployed address
+        handler: ./src/EventHandlers.ts
+        events:
+          - event: AgentRegistered(uint256 indexed agentId, address indexed owner, address indexed walletAddress, string agentCardURI)
+          - event: AgentCardUpdated(uint256 indexed agentId, string newURI)
+          - event: CleanverseVerificationUpdated(uint256 indexed agentId, bool verified)
+
+      - name: ReputationRegistry
+        abi_file_path: ./abis/ReputationRegistry.json
+        address:
+          - "0x0000000000000000000000000000000000000000"
+        handler: ./src/EventHandlers.ts
+        events:
+          - event: FeedbackSubmitted(uint256 indexed agentId, address indexed reviewer, uint8 score, string tag, bytes32 jobHash)
+          - event: JobSettlementRecorded(uint256 indexed agentId, uint256 paymentAmount, bool success)
+
+      - name: PaymentSettlement
+        abi_file_path: ./abis/PaymentSettlement.json
+        address:
+          - "0x0000000000000000000000000000000000000000"
+        handler: ./src/EventHandlers.ts
+        events:
+          - event: JobCreated(uint256 indexed jobId, uint256 indexed employerAgentId, uint256 indexed workerAgentId, uint256 paymentAmount, uint256 workerStakeRequired, uint256 challengePeriodSeconds)
+          - event: JobAccepted(uint256 indexed jobId, uint256 indexed workerAgentId, uint256 stakeDeposited)
+          - event: DeliverySubmitted(uint256 indexed jobId, bytes32 deliveryHash, string deliveryURI, uint256 challengeDeadline)
+          - event: JobSettled(uint256 indexed jobId, address indexed workerWallet, uint256 totalPayout)
+          - event: DisputeRaised(uint256 indexed jobId, address indexed disputer, string reason)
+          - event: DisputeResolved(uint256 indexed jobId, bool favorWorker, string resolutionNotes)
+          - event: JobCancelled(uint256 indexed jobId)

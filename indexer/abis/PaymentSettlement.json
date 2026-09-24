@@ -1,0 +1,737 @@
+[
+    {
+        "type":  "constructor",
+        "inputs":  [
+                       {
+                           "name":  "_identityRegistry",
+                           "type":  "address",
+                           "internalType":  "address"
+                       },
+                       {
+                           "name":  "_reputationRegistry",
+                           "type":  "address",
+                           "internalType":  "address"
+                       },
+                       {
+                           "name":  "_disputeResolver",
+                           "type":  "address",
+                           "internalType":  "address"
+                       }
+                   ],
+        "stateMutability":  "nonpayable"
+    },
+    {
+        "type":  "function",
+        "name":  "acceptJob",
+        "inputs":  [
+                       {
+                           "name":  "jobId",
+                           "type":  "uint256",
+                           "internalType":  "uint256"
+                       }
+                   ],
+        "outputs":  [
+
+                    ],
+        "stateMutability":  "payable"
+    },
+    {
+        "type":  "function",
+        "name":  "cancelJob",
+        "inputs":  [
+                       {
+                           "name":  "jobId",
+                           "type":  "uint256",
+                           "internalType":  "uint256"
+                       }
+                   ],
+        "outputs":  [
+
+                    ],
+        "stateMutability":  "nonpayable"
+    },
+    {
+        "type":  "function",
+        "name":  "claimPayment",
+        "inputs":  [
+                       {
+                           "name":  "jobId",
+                           "type":  "uint256",
+                           "internalType":  "uint256"
+                       }
+                   ],
+        "outputs":  [
+
+                    ],
+        "stateMutability":  "nonpayable"
+    },
+    {
+        "type":  "function",
+        "name":  "createJob",
+        "inputs":  [
+                       {
+                           "name":  "employerAgentId",
+                           "type":  "uint256",
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "workerAgentId",
+                           "type":  "uint256",
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "workerStakeRequired",
+                           "type":  "uint256",
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "challengePeriodSeconds",
+                           "type":  "uint256",
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "jobSpecHash",
+                           "type":  "bytes32",
+                           "internalType":  "bytes32"
+                       }
+                   ],
+        "outputs":  [
+                        {
+                            "name":  "jobId",
+                            "type":  "uint256",
+                            "internalType":  "uint256"
+                        }
+                    ],
+        "stateMutability":  "payable"
+    },
+    {
+        "type":  "function",
+        "name":  "defaultChallengePeriod",
+        "inputs":  [
+
+                   ],
+        "outputs":  [
+                        {
+                            "name":  "",
+                            "type":  "uint256",
+                            "internalType":  "uint256"
+                        }
+                    ],
+        "stateMutability":  "view"
+    },
+    {
+        "type":  "function",
+        "name":  "disputeResolver",
+        "inputs":  [
+
+                   ],
+        "outputs":  [
+                        {
+                            "name":  "",
+                            "type":  "address",
+                            "internalType":  "address"
+                        }
+                    ],
+        "stateMutability":  "view"
+    },
+    {
+        "type":  "function",
+        "name":  "getJob",
+        "inputs":  [
+                       {
+                           "name":  "jobId",
+                           "type":  "uint256",
+                           "internalType":  "uint256"
+                       }
+                   ],
+        "outputs":  [
+                        {
+                            "name":  "",
+                            "type":  "tuple",
+                            "internalType":  "struct IPaymentSettlement.Job",
+                            "components":  [
+                                               {
+                                                   "name":  "jobId",
+                                                   "type":  "uint256",
+                                                   "internalType":  "uint256"
+                                               },
+                                               {
+                                                   "name":  "employerAgentId",
+                                                   "type":  "uint256",
+                                                   "internalType":  "uint256"
+                                               },
+                                               {
+                                                   "name":  "workerAgentId",
+                                                   "type":  "uint256",
+                                                   "internalType":  "uint256"
+                                               },
+                                               {
+                                                   "name":  "employerWallet",
+                                                   "type":  "address",
+                                                   "internalType":  "address"
+                                               },
+                                               {
+                                                   "name":  "workerWallet",
+                                                   "type":  "address",
+                                                   "internalType":  "address"
+                                               },
+                                               {
+                                                   "name":  "paymentAmount",
+                                                   "type":  "uint256",
+                                                   "internalType":  "uint256"
+                                               },
+                                               {
+                                                   "name":  "workerStakeRequired",
+                                                   "type":  "uint256",
+                                                   "internalType":  "uint256"
+                                               },
+                                               {
+                                                   "name":  "workerStakeDeposited",
+                                                   "type":  "uint256",
+                                                   "internalType":  "uint256"
+                                               },
+                                               {
+                                                   "name":  "challengePeriodSeconds",
+                                                   "type":  "uint256",
+                                                   "internalType":  "uint256"
+                                               },
+                                               {
+                                                   "name":  "challengeDeadline",
+                                                   "type":  "uint256",
+                                                   "internalType":  "uint256"
+                                               },
+                                               {
+                                                   "name":  "jobSpecHash",
+                                                   "type":  "bytes32",
+                                                   "internalType":  "bytes32"
+                                               },
+                                               {
+                                                   "name":  "deliveryHash",
+                                                   "type":  "bytes32",
+                                                   "internalType":  "bytes32"
+                                               },
+                                               {
+                                                   "name":  "deliveryURI",
+                                                   "type":  "string",
+                                                   "internalType":  "string"
+                                               },
+                                               {
+                                                   "name":  "status",
+                                                   "type":  "uint8",
+                                                   "internalType":  "enum IPaymentSettlement.JobStatus"
+                                               },
+                                               {
+                                                   "name":  "disputeInitiator",
+                                                   "type":  "address",
+                                                   "internalType":  "address"
+                                               }
+                                           ]
+                        }
+                    ],
+        "stateMutability":  "view"
+    },
+    {
+        "type":  "function",
+        "name":  "identityRegistry",
+        "inputs":  [
+
+                   ],
+        "outputs":  [
+                        {
+                            "name":  "",
+                            "type":  "address",
+                            "internalType":  "contract IERC8004Identity"
+                        }
+                    ],
+        "stateMutability":  "view"
+    },
+    {
+        "type":  "function",
+        "name":  "owner",
+        "inputs":  [
+
+                   ],
+        "outputs":  [
+                        {
+                            "name":  "",
+                            "type":  "address",
+                            "internalType":  "address"
+                        }
+                    ],
+        "stateMutability":  "view"
+    },
+    {
+        "type":  "function",
+        "name":  "raiseDispute",
+        "inputs":  [
+                       {
+                           "name":  "jobId",
+                           "type":  "uint256",
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "reason",
+                           "type":  "string",
+                           "internalType":  "string"
+                       }
+                   ],
+        "outputs":  [
+
+                    ],
+        "stateMutability":  "nonpayable"
+    },
+    {
+        "type":  "function",
+        "name":  "renounceOwnership",
+        "inputs":  [
+
+                   ],
+        "outputs":  [
+
+                    ],
+        "stateMutability":  "nonpayable"
+    },
+    {
+        "type":  "function",
+        "name":  "reputationRegistry",
+        "inputs":  [
+
+                   ],
+        "outputs":  [
+                        {
+                            "name":  "",
+                            "type":  "address",
+                            "internalType":  "contract IERC8004Reputation"
+                        }
+                    ],
+        "stateMutability":  "view"
+    },
+    {
+        "type":  "function",
+        "name":  "resolveDispute",
+        "inputs":  [
+                       {
+                           "name":  "jobId",
+                           "type":  "uint256",
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "favorWorker",
+                           "type":  "bool",
+                           "internalType":  "bool"
+                       },
+                       {
+                           "name":  "resolutionNotes",
+                           "type":  "string",
+                           "internalType":  "string"
+                       }
+                   ],
+        "outputs":  [
+
+                    ],
+        "stateMutability":  "nonpayable"
+    },
+    {
+        "type":  "function",
+        "name":  "setDefaultChallengePeriod",
+        "inputs":  [
+                       {
+                           "name":  "newPeriod",
+                           "type":  "uint256",
+                           "internalType":  "uint256"
+                       }
+                   ],
+        "outputs":  [
+
+                    ],
+        "stateMutability":  "nonpayable"
+    },
+    {
+        "type":  "function",
+        "name":  "setDisputeResolver",
+        "inputs":  [
+                       {
+                           "name":  "newResolver",
+                           "type":  "address",
+                           "internalType":  "address"
+                       }
+                   ],
+        "outputs":  [
+
+                    ],
+        "stateMutability":  "nonpayable"
+    },
+    {
+        "type":  "function",
+        "name":  "submitDelivery",
+        "inputs":  [
+                       {
+                           "name":  "jobId",
+                           "type":  "uint256",
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "deliveryHash",
+                           "type":  "bytes32",
+                           "internalType":  "bytes32"
+                       },
+                       {
+                           "name":  "deliveryURI",
+                           "type":  "string",
+                           "internalType":  "string"
+                       }
+                   ],
+        "outputs":  [
+
+                    ],
+        "stateMutability":  "nonpayable"
+    },
+    {
+        "type":  "function",
+        "name":  "transferOwnership",
+        "inputs":  [
+                       {
+                           "name":  "newOwner",
+                           "type":  "address",
+                           "internalType":  "address"
+                       }
+                   ],
+        "outputs":  [
+
+                    ],
+        "stateMutability":  "nonpayable"
+    },
+    {
+        "type":  "event",
+        "name":  "DeliverySubmitted",
+        "inputs":  [
+                       {
+                           "name":  "jobId",
+                           "type":  "uint256",
+                           "indexed":  true,
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "deliveryHash",
+                           "type":  "bytes32",
+                           "indexed":  false,
+                           "internalType":  "bytes32"
+                       },
+                       {
+                           "name":  "deliveryURI",
+                           "type":  "string",
+                           "indexed":  false,
+                           "internalType":  "string"
+                       },
+                       {
+                           "name":  "challengeDeadline",
+                           "type":  "uint256",
+                           "indexed":  false,
+                           "internalType":  "uint256"
+                       }
+                   ],
+        "anonymous":  false
+    },
+    {
+        "type":  "event",
+        "name":  "DisputeRaised",
+        "inputs":  [
+                       {
+                           "name":  "jobId",
+                           "type":  "uint256",
+                           "indexed":  true,
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "disputer",
+                           "type":  "address",
+                           "indexed":  true,
+                           "internalType":  "address"
+                       },
+                       {
+                           "name":  "reason",
+                           "type":  "string",
+                           "indexed":  false,
+                           "internalType":  "string"
+                       }
+                   ],
+        "anonymous":  false
+    },
+    {
+        "type":  "event",
+        "name":  "DisputeResolved",
+        "inputs":  [
+                       {
+                           "name":  "jobId",
+                           "type":  "uint256",
+                           "indexed":  true,
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "favorWorker",
+                           "type":  "bool",
+                           "indexed":  false,
+                           "internalType":  "bool"
+                       },
+                       {
+                           "name":  "resolutionNotes",
+                           "type":  "string",
+                           "indexed":  false,
+                           "internalType":  "string"
+                       }
+                   ],
+        "anonymous":  false
+    },
+    {
+        "type":  "event",
+        "name":  "JobAccepted",
+        "inputs":  [
+                       {
+                           "name":  "jobId",
+                           "type":  "uint256",
+                           "indexed":  true,
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "workerAgentId",
+                           "type":  "uint256",
+                           "indexed":  true,
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "stakeDeposited",
+                           "type":  "uint256",
+                           "indexed":  false,
+                           "internalType":  "uint256"
+                       }
+                   ],
+        "anonymous":  false
+    },
+    {
+        "type":  "event",
+        "name":  "JobCancelled",
+        "inputs":  [
+                       {
+                           "name":  "jobId",
+                           "type":  "uint256",
+                           "indexed":  true,
+                           "internalType":  "uint256"
+                       }
+                   ],
+        "anonymous":  false
+    },
+    {
+        "type":  "event",
+        "name":  "JobCreated",
+        "inputs":  [
+                       {
+                           "name":  "jobId",
+                           "type":  "uint256",
+                           "indexed":  true,
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "employerAgentId",
+                           "type":  "uint256",
+                           "indexed":  true,
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "workerAgentId",
+                           "type":  "uint256",
+                           "indexed":  true,
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "paymentAmount",
+                           "type":  "uint256",
+                           "indexed":  false,
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "workerStakeRequired",
+                           "type":  "uint256",
+                           "indexed":  false,
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "challengePeriodSeconds",
+                           "type":  "uint256",
+                           "indexed":  false,
+                           "internalType":  "uint256"
+                       }
+                   ],
+        "anonymous":  false
+    },
+    {
+        "type":  "event",
+        "name":  "JobSettled",
+        "inputs":  [
+                       {
+                           "name":  "jobId",
+                           "type":  "uint256",
+                           "indexed":  true,
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "workerWallet",
+                           "type":  "address",
+                           "indexed":  true,
+                           "internalType":  "address"
+                       },
+                       {
+                           "name":  "totalPayout",
+                           "type":  "uint256",
+                           "indexed":  false,
+                           "internalType":  "uint256"
+                       }
+                   ],
+        "anonymous":  false
+    },
+    {
+        "type":  "event",
+        "name":  "OwnershipTransferred",
+        "inputs":  [
+                       {
+                           "name":  "previousOwner",
+                           "type":  "address",
+                           "indexed":  true,
+                           "internalType":  "address"
+                       },
+                       {
+                           "name":  "newOwner",
+                           "type":  "address",
+                           "indexed":  true,
+                           "internalType":  "address"
+                       }
+                   ],
+        "anonymous":  false
+    },
+    {
+        "type":  "error",
+        "name":  "ChallengePeriodElapsed",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "ChallengePeriodNotElapsed",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "EmptyDeliveryHash",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "EmptyJobSpec",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "InsufficientWorkerStake",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "InvalidAgentId",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "InvalidIdentityRegistry",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "InvalidJobState",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "InvalidPaymentAmount",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "InvalidReputationRegistry",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "InvalidResolverAddress",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "OnlyDisputeResolver",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "OwnableInvalidOwner",
+        "inputs":  [
+                       {
+                           "name":  "owner",
+                           "type":  "address",
+                           "internalType":  "address"
+                       }
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "OwnableUnauthorizedAccount",
+        "inputs":  [
+                       {
+                           "name":  "account",
+                           "type":  "address",
+                           "internalType":  "address"
+                       }
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "ReentrancyGuardReentrantCall",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "TransferFailed",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "UnauthorizedAgent",
+        "inputs":  [
+
+                   ]
+    }
+]

@@ -1,0 +1,73 @@
+type Agent @entity {
+  id: ID! # agentId as string
+  agentId: BigInt!
+  owner: String!
+  walletAddress: String!
+  agentCardURI: String!
+  isCleanverseVerified: Boolean!
+  totalCompletedJobs: BigInt!
+  totalDisputedJobs: BigInt!
+  totalEarned: BigInt!
+  averageScore: Int!
+  feedbackCount: BigInt!
+  registeredAt: BigInt!
+  feedbacks: [Feedback!]! @derivedFrom(field: "agent")
+  jobsAsEmployer: [Job!]! @derivedFrom(field: "employerAgent")
+  jobsAsWorker: [Job!]! @derivedFrom(field: "workerAgent")
+}
+
+type Feedback @entity {
+  id: ID! # agentId-index-txHash
+  agent: Agent!
+  reviewer: String!
+  score: Int!
+  tag: String!
+  comments: String!
+  jobHash: String!
+  timestamp: BigInt!
+}
+
+enum JobStatus {
+  CREATED
+  ACCEPTED
+  DELIVERED
+  SETTLED
+  DISPUTED
+  RESOLVED
+  CANCELLED
+}
+
+type Job @entity {
+  id: ID! # jobId
+  jobId: BigInt!
+  employerAgent: Agent!
+  workerAgent: Agent!
+  employerWallet: String!
+  workerWallet: String!
+  paymentAmount: BigInt!
+  workerStakeRequired: BigInt!
+  workerStakeDeposited: BigInt!
+  challengePeriodSeconds: BigInt!
+  challengeDeadline: BigInt
+  status: JobStatus!
+  jobSpecHash: String!
+  deliveryHash: String
+  deliveryURI: String
+  disputeInitiator: String
+  disputeReason: String
+  disputeFavorWorker: Boolean
+  disputeResolutionNotes: String
+  createdAt: BigInt!
+  deliveredAt: BigInt
+  settledAt: BigInt
+}
+
+type ProtocolStats @entity {
+  id: ID! # "global"
+  totalVolume: BigInt!
+  totalJobs: BigInt!
+  settledJobs: BigInt!
+  disputedJobs: BigInt!
+  totalAgentsRegistered: BigInt!
+  cleanverseVerifiedAgents: BigInt!
+}

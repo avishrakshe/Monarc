@@ -1,0 +1,23 @@
+{
+  "name": "monarc-agent-runtime",
+  "version": "1.0.0",
+  "description": "Autonomous DeFi Agent Runtime for Monarc on Monad Testnet powered by Qwen 3.8 Max, Nansen, Cleanverse, and Dynamic",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx src/index.ts",
+    "agent:market-maker": "tsx src/index.ts --role market-maker",
+    "agent:auditor": "tsx src/index.ts --role auditor",
+    "agent:arbitrageur": "tsx src/index.ts --role arbitrageur"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "viem": "^2.18.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.4.5"
+  }
+}

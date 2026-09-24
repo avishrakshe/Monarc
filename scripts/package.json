@@ -1,0 +1,19 @@
+{
+  "name": "monarc-scripts",
+  "version": "1.0.0",
+  "description": "Synthetic volume and stress simulation for Monarc on Monad Testnet",
+  "main": "synthetic-volume.ts",
+  "scripts": {
+    "simulate": "tsx synthetic-volume.ts",
+    "simulate:continuous": "tsx synthetic-volume.ts --continuous"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "viem": "^2.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.4.5"
+  }
+}

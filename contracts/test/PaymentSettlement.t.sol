@@ -2,175 +2,179 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
+import "../src/MockUSDC.sol";
 import "../src/IdentityRegistry.sol";
 import "../src/ReputationRegistry.sol";
+import "../src/StakeManager.sol";
 import "../src/PaymentSettlement.sol";
 
 contract PaymentSettlementTest is Test {
+    MockUSDC public usdc;
     IdentityRegistry public identity;
     ReputationRegistry public reputation;
+    StakeManager public stakeManager;
     PaymentSettlement public settlement;
 
     address public resolver = address(0x999);
-    address public employerOwner = address(0x111);
-    address public employerWallet = address(0x222);
-    address public workerOwner = address(0x333);
-    address public workerWallet = address(0x444);
+    address public posterWallet = address(0x101);
+    address public workerWallet = address(0x202);
 
-    uint256 public employerAgentId;
-    uint256 public workerAgentId;
+    uint256 public posterId;
+    uint256 public workerId;
 
     function setUp() public {
-        identity = new IdentityRegistry();
-        reputation = new ReputationRegistry(address(identity));
-        settlement = new PaymentSettlement(address(identity), address(reputation), resolver);
+        usdc = new MockUSDC();
+        identity = new IdentityRegistry(address(0), address(this));
+        reputation = new ReputationRegistry(address(identity), address(this));
+        stakeManager = new StakeManager(address(usdc), address(identity), resolver);
 
-        reputation.setAuthorizedReporter(address(settlement), true);
+        settlement = new PaymentSettlement(
+            address(usdc),
+            address(identity),
+            address(reputation),
+            address(stakeManager),
+            resolver
+        );
 
-        // Register employer agent
-        vm.prank(employerOwner);
-        employerAgentId = identity.registerAgent("ipfs://QmEmployer", employerWallet);
+        reputation.setPaymentSettlement(address(settlement));
+        stakeManager.setPaymentSettlement(address(settlement));
 
-        // Register worker agent
-        vm.prank(workerOwner);
-        workerAgentId = identity.registerAgent("ipfs://QmWorker", workerWallet);
+        posterId = identity.register(posterWallet, hex"11112222");
+        workerId = identity.register(workerWallet, hex"33334444");
 
-        vm.deal(employerWallet, 50 ether);
-        vm.deal(workerWallet, 50 ether);
-        vm.deal(employerOwner, 50 ether);
-        vm.deal(workerOwner, 50 ether);
+        // Fund poster and worker
+        usdc.mint(address(this), 10_000 * 10 ** 6);
+        usdc.mint(posterWallet, 10_000 * 10 ** 6);
+        usdc.mint(workerWallet, 10_000 * 10 ** 6);
+
+        vm.prank(posterWallet);
+        usdc.approve(address(settlement), type(uint256).max);
+
+        vm.prank(workerWallet);
+        usdc.approve(address(stakeManager), type(uint256).max);
+
+        // Worker stakes collateral in StakeManager
+        vm.prank(workerWallet);
+        stakeManager.stake(workerId, 500 * 10 ** 6);
     }
 
     function test_FullHappyPathSettlement() public {
-        uint256 payment = 2 ether;
-        uint256 workerStake = 0.5 ether;
-        bytes32 specHash = keccak256("DeFi Liquidity Rebalancing Task");
+        uint256 paymentAmount = 100 * 10 ** 6; // 100 USDC
+        bytes32 spec = keccak256("DeFi Arbitrage Optimization Job");
 
-        // 1. Employer creates job
-        vm.prank(employerWallet);
-        uint256 jobId = settlement.createJob{value: payment}(
-            employerAgentId,
-            workerAgentId,
-            workerStake,
-            120, // 120s challenge period
-            specHash
-        );
+        // 1. Poster creates job
+        vm.prank(posterWallet);
+        uint256 jobId = settlement.createJob(posterId, paymentAmount, spec);
 
         IPaymentSettlement.Job memory job = settlement.getJob(jobId);
+        assertEq(job.jobId, 1);
+        assertEq(job.amount, paymentAmount);
         assertEq(uint8(job.status), uint8(IPaymentSettlement.JobStatus.CREATED));
-        assertEq(job.paymentAmount, payment);
 
-        // 2. Worker accepts job with stake
+        // 2. Worker accepts job
         vm.prank(workerWallet);
-        settlement.acceptJob{value: workerStake}(jobId);
+        settlement.acceptJob(jobId, workerId);
 
         job = settlement.getJob(jobId);
         assertEq(uint8(job.status), uint8(IPaymentSettlement.JobStatus.ACCEPTED));
-        assertEq(job.workerStakeDeposited, workerStake);
+        assertEq(job.workerId, workerId);
 
-        // 3. Worker submits delivery
-        bytes32 delivHash = keccak256("Delivery Payload v1");
+        // 3. Worker delivers work
+        bytes32 proof = keccak256("Proof payload v1");
         vm.prank(workerWallet);
-        settlement.submitDelivery(jobId, delivHash, "ipfs://QmDeliveryResult");
+        settlement.submitDelivery(jobId, proof);
 
         job = settlement.getJob(jobId);
         assertEq(uint8(job.status), uint8(IPaymentSettlement.JobStatus.DELIVERED));
         assertEq(job.challengeDeadline, block.timestamp + 120);
 
-        // Cannot claim before challenge deadline
+        // Reverts if third party claims before challenge window elapses
+        vm.prank(address(0x888));
         vm.expectRevert(PaymentSettlement.ChallengePeriodNotElapsed.selector);
-        settlement.claimPayment(jobId);
+        settlement.confirmDelivery(jobId);
 
-        // 4. Warp past challenge period (undisputed auto-release)
+        // 4. Warp past 120s optimistic window -> auto-release
         vm.warp(block.timestamp + 121);
 
-        uint256 workerBalanceBefore = workerWallet.balance;
-        settlement.claimPayment(jobId);
+        uint256 workerBalanceBefore = usdc.balanceOf(workerWallet);
+        settlement.confirmDelivery(jobId);
 
         job = settlement.getJob(jobId);
-        assertEq(uint8(job.status), uint8(IPaymentSettlement.JobStatus.SETTLED));
-        assertEq(workerWallet.balance, workerBalanceBefore + payment + workerStake);
+        assertEq(uint8(job.status), uint8(IPaymentSettlement.JobStatus.CONFIRMED));
+        assertEq(usdc.balanceOf(workerWallet), workerBalanceBefore + paymentAmount);
 
-        // Verify reputation record
-        IERC8004Reputation.AgentReputationSummary memory summary = reputation.getSummary(workerAgentId);
-        assertEq(summary.totalCompletedJobs, 1);
-        assertEq(summary.totalEarned, payment);
+        // Verify reputation record outcome
+        int256 rep = reputation.getReputation(workerId);
+        assertEq(rep, 150); // 100 base + 50 success
     }
 
-    function test_DisputeResolvedInFavorOfEmployer_SlashesWorker() public {
-        uint256 payment = 3 ether;
-        uint256 workerStake = 1 ether;
+    function test_DisputeAndResolverSlashesWorker() public {
+        uint256 paymentAmount = 200 * 10 ** 6;
+        bytes32 spec = keccak256("Security Audit Job");
 
-        vm.prank(employerWallet);
-        uint256 jobId = settlement.createJob{value: payment}(
-            employerAgentId,
-            workerAgentId,
-            workerStake,
-            120,
-            keccak256("MEV Searcher Job")
-        );
+        vm.prank(posterWallet);
+        uint256 jobId = settlement.createJob(posterId, paymentAmount, spec);
 
         vm.prank(workerWallet);
-        settlement.acceptJob{value: workerStake}(jobId);
+        settlement.acceptJob(jobId, workerId);
 
         vm.prank(workerWallet);
-        settlement.submitDelivery(jobId, keccak256("Bad delivery"), "ipfs://QmFaulty");
+        settlement.submitDelivery(jobId, keccak256("Incomplete delivery"));
 
-        // Employer raises dispute within 120s window
-        vm.prank(employerWallet);
-        settlement.raiseDispute(jobId, "Delivery output failed verification criteria");
+        // Poster disputes within 120s window
+        vm.prank(posterWallet);
+        settlement.disputeDelivery(jobId);
 
         IPaymentSettlement.Job memory job = settlement.getJob(jobId);
         assertEq(uint8(job.status), uint8(IPaymentSettlement.JobStatus.DISPUTED));
 
-        // Resolver decides in favor of employer (slashes worker collateral)
-        uint256 employerBalanceBefore = employerWallet.balance;
+        // Resolver decides in favor of poster -> worker collateral slashed, poster refunded
+        uint256 posterBalBefore = usdc.balanceOf(posterWallet);
+        (uint256 workerStakeBefore, , ) = stakeManager.getStake(workerId);
+
         vm.prank(resolver);
-        settlement.resolveDispute(jobId, false, "Audit confirmed delivery was incomplete");
+        settlement.resolveDispute(jobId, posterId);
 
         job = settlement.getJob(jobId);
         assertEq(uint8(job.status), uint8(IPaymentSettlement.JobStatus.RESOLVED));
 
-        // Employer received back payment + slashed worker stake
-        assertEq(employerWallet.balance, employerBalanceBefore + payment + workerStake);
+        // Poster received refund + slashed collateral (20% of 200 USDC = 40 USDC)
+        uint256 slashExpected = 40 * 10 ** 6;
+        assertEq(usdc.balanceOf(posterWallet), posterBalBefore + paymentAmount + slashExpected);
 
-        // Worker reputation reflects disputed job
-        IERC8004Reputation.AgentReputationSummary memory summary = reputation.getSummary(workerAgentId);
-        assertEq(summary.totalDisputedJobs, 1);
-        assertEq(summary.totalCompletedJobs, 0);
+        (uint256 workerStakeAfter, , ) = stakeManager.getStake(workerId);
+        assertEq(workerStakeAfter, workerStakeBefore - slashExpected);
+
+        // Reputation penalized
+        int256 rep = reputation.getReputation(workerId);
+        assertEq(rep, -50); // 100 base - 150 failed
     }
 
     function test_DisputeResolvedInFavorOfWorker() public {
-        uint256 payment = 2 ether;
-        uint256 workerStake = 0.5 ether;
+        uint256 paymentAmount = 150 * 10 ** 6;
+        bytes32 spec = keccak256("AMM Rebalancing");
 
-        vm.prank(employerWallet);
-        uint256 jobId = settlement.createJob{value: payment}(
-            employerAgentId,
-            workerAgentId,
-            workerStake,
-            120,
-            keccak256("Sub-agent Task")
-        );
+        vm.prank(posterWallet);
+        uint256 jobId = settlement.createJob(posterId, paymentAmount, spec);
 
         vm.prank(workerWallet);
-        settlement.acceptJob{value: workerStake}(jobId);
+        settlement.acceptJob(jobId, workerId);
 
         vm.prank(workerWallet);
-        settlement.submitDelivery(jobId, keccak256("Good delivery"), "ipfs://QmSuccess");
+        settlement.submitDelivery(jobId, keccak256("Valid delivery"));
 
-        // Frivolous dispute by employer
-        vm.prank(employerWallet);
-        settlement.raiseDispute(jobId, "Frivolous complaint");
+        vm.prank(posterWallet);
+        settlement.disputeDelivery(jobId);
 
-        // Resolver decides favorWorker = true
-        uint256 workerBalanceBefore = workerWallet.balance;
+        // Resolver rules favor of worker
+        uint256 workerBalBefore = usdc.balanceOf(workerWallet);
+
         vm.prank(resolver);
-        settlement.resolveDispute(jobId, true, "Work verified correct against spec");
+        settlement.resolveDispute(jobId, workerId);
 
-        assertEq(workerWallet.balance, workerBalanceBefore + payment + workerStake);
+        assertEq(usdc.balanceOf(workerWallet), workerBalBefore + paymentAmount);
 
-        IERC8004Reputation.AgentReputationSummary memory summary = reputation.getSummary(workerAgentId);
-        assertEq(summary.totalCompletedJobs, 1);
+        int256 rep = reputation.getReputation(workerId);
+        assertEq(rep, 150);
     }
 }

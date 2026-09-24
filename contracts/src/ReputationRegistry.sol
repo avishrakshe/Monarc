@@ -2,126 +2,126 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/IERC8004Reputation.sol";
-import "./interfaces/IERC8004Identity.sol";
+import "./interfaces/IReputationRegistry.sol";
+import "./interfaces/IIdentityRegistry.sol";
 
 /// @title ReputationRegistry
-/// @notice ERC-8004 Compliant Reputation Registry for Monarc on Monad
-/// @dev Records immutable client feedback, verifies onchain performance, and computes reputation metrics
-contract ReputationRegistry is Ownable, IERC8004Reputation {
+/// @notice ERC-8004 Compliant Reputation Registry on Monad
+/// @dev Records immutable job outcomes from PaymentSettlement and external signals from Nansen on-chain intelligence
+contract ReputationRegistry is Ownable, IReputationRegistry {
     /// @dev Custom errors
-    error InvalidScore();
+    error UnauthorizedPaymentSettlement();
+    error UnauthorizedSignalWriter();
     error AgentDoesNotExist();
-    error UnauthorizedCaller();
-    error FeedbackIndexOutOfBounds();
     error InvalidIdentityRegistry();
+    error InvalidTimestamp();
 
-    IERC8004Identity public immutable identityRegistry;
+    IIdentityRegistry public immutable identityRegistry;
 
-    /// @dev Authorized settlement or validation contracts permitted to record verified task completions
-    mapping(address => bool) public isAuthorizedReporter;
+    /// @notice Authorized PaymentSettlement contract allowed to call recordOutcome
+    address public paymentSettlement;
 
-    /// @dev Mapping from agentId to list of feedbacks
-    mapping(uint256 => Feedback[]) private _agentFeedbacks;
+    /// @notice Authorized permissioned writer for Nansen onchain intelligence signals
+    address public nansenSignalWriter;
 
-    /// @dev Mapping from agentId to aggregated summary
-    mapping(uint256 => AgentReputationSummary) private _summaries;
+    /// @dev Mapping from agentId to metrics
+    mapping(uint256 => ReputationMetrics) private _metrics;
 
-    constructor(address _identityRegistry) Ownable(msg.sender) {
+    /// @dev Mapping from agentId to list of outcomes (immutable history per ERC-8004)
+    mapping(uint256 => OutcomeRecord[]) private _outcomes;
+
+    constructor(address _identityRegistry, address _nansenSignalWriter) Ownable(msg.sender) {
         if (_identityRegistry == address(0)) revert InvalidIdentityRegistry();
-        identityRegistry = IERC8004Identity(_identityRegistry);
+        identityRegistry = IIdentityRegistry(_identityRegistry);
+        nansenSignalWriter = _nansenSignalWriter != address(0) ? _nansenSignalWriter : msg.sender;
     }
 
-    /// @notice Grants or revokes reporter role for PaymentSettlement or Validation contracts
-    /// @param reporter Address of the reporter contract
-    /// @param active Authorization status
-    function setAuthorizedReporter(address reporter, bool active) external onlyOwner {
-        if (reporter == address(0)) revert UnauthorizedCaller();
-        isAuthorizedReporter[reporter] = active;
+    /// @notice Sets the authorized PaymentSettlement contract
+    /// @param _paymentSettlement Address of the PaymentSettlement contract
+    function setPaymentSettlement(address _paymentSettlement) external onlyOwner {
+        paymentSettlement = _paymentSettlement;
     }
 
-    /// @notice Submits immutable feedback for an agent following ERC-8004
-    /// @param agentId The target agent ID
-    /// @param score Score between 1 and 100
-    /// @param tag Short category or capability tag
-    /// @param comments Client or peer comments
-    /// @param jobHash Cryptographic commitment to the job or interaction
-    function giveFeedback(
-        uint256 agentId,
-        uint8 score,
-        string calldata tag,
-        string calldata comments,
-        bytes32 jobHash
-    ) external override {
-        if (!identityRegistry.isRegistered(agentId)) revert AgentDoesNotExist();
-        if (score < 1 || score > 100) revert InvalidScore();
-
-        Feedback memory feedback = Feedback({
-            reviewer: msg.sender,
-            score: score,
-            tag: tag,
-            comments: comments,
-            jobHash: jobHash,
-            timestamp: block.timestamp
-        });
-
-        _agentFeedbacks[agentId].push(feedback);
-
-        AgentReputationSummary storage summary = _summaries[agentId];
-        uint256 currentCount = summary.feedbackCount;
-        uint64 newCount = uint64(currentCount + 1);
-
-        // Update incremental moving average
-        uint256 totalScore = (uint256(summary.averageScore) * currentCount) + score;
-        summary.averageScore = uint32(totalScore / newCount);
-        summary.feedbackCount = newCount;
-
-        emit FeedbackSubmitted(agentId, msg.sender, score, tag, jobHash);
+    /// @notice Sets the authorized Nansen external signal writer
+    /// @param _writer Address of the Nansen intelligence writer
+    function setNansenSignalWriter(address _writer) external onlyOwner {
+        nansenSignalWriter = _writer;
     }
 
-    /// @notice Records onchain job completion or dispute from authorized payment contracts
-    /// @param agentId The worker agent ID
-    /// @param paymentAmount The value earned from the completed job
+    /// @notice Records an immutable job outcome per ERC-8004
+    /// @dev Callable ONLY by the authorized PaymentSettlement contract
+    /// @param agentId The worker or participant agent ID
     /// @param success True if delivered successfully without dispute loss
-    function recordJobCompletion(
+    /// @param counterpartyId The hiring or counterpart agent ID
+    function recordOutcome(
         uint256 agentId,
-        uint256 paymentAmount,
-        bool success
+        bool success,
+        uint256 counterpartyId
     ) external override {
-        if (!isAuthorizedReporter[msg.sender] && msg.sender != owner()) {
-            revert UnauthorizedCaller();
+        if (msg.sender != paymentSettlement && msg.sender != owner()) {
+            revert UnauthorizedPaymentSettlement();
         }
         if (!identityRegistry.isRegistered(agentId)) revert AgentDoesNotExist();
 
-        AgentReputationSummary storage summary = _summaries[agentId];
+        ReputationMetrics storage m = _metrics[agentId];
         if (success) {
-            summary.totalCompletedJobs += 1;
-            summary.totalEarned += uint128(paymentAmount);
+            m.successfulJobs += 1;
         } else {
-            summary.totalDisputedJobs += 1;
+            m.failedJobs += 1;
         }
 
-        emit JobSettlementRecorded(agentId, paymentAmount, success);
+        _outcomes[agentId].push(OutcomeRecord({
+            success: success,
+            counterpartyId: counterpartyId,
+            timestamp: block.timestamp
+        }));
+
+        emit OutcomeRecorded(agentId, success, counterpartyId, block.timestamp);
     }
 
-    /// @notice Returns the aggregated reputation summary for an agent
-    /// @param agentId Unique agent ID
-    function getSummary(uint256 agentId) external view override returns (AgentReputationSummary memory) {
+    /// @notice Updates external reputation signals fed by Nansen onchain intelligence
+    /// @dev Permissioned writer role
+    /// @param agentId The target agent ID
+    /// @param nansenScore Real-time onchain score from Nansen intelligence (e.g. 0 to 100)
+    /// @param timestamp Attestation timestamp
+    function updateExternalSignal(
+        uint256 agentId,
+        int256 nansenScore,
+        uint256 timestamp
+    ) external override {
+        if (msg.sender != nansenSignalWriter && msg.sender != owner()) {
+            revert UnauthorizedSignalWriter();
+        }
         if (!identityRegistry.isRegistered(agentId)) revert AgentDoesNotExist();
-        return _summaries[agentId];
+        if (timestamp == 0 || timestamp > block.timestamp + 300) revert InvalidTimestamp();
+
+        ReputationMetrics storage m = _metrics[agentId];
+        m.nansenScore = nansenScore;
+        m.lastNansenUpdate = timestamp;
+
+        emit ExternalSignalUpdated(agentId, nansenScore, timestamp);
     }
 
-    /// @notice Returns a single feedback entry by index
-    /// @param agentId Unique agent ID
-    /// @param index Position in feedback array
-    function getFeedback(uint256 agentId, uint256 index) external view override returns (Feedback memory) {
-        if (index >= _agentFeedbacks[agentId].length) revert FeedbackIndexOutOfBounds();
-        return _agentFeedbacks[agentId][index];
+    /// @notice Computes and returns the composite reputation score for an agent
+    /// @param agentId Unique agent identifier
+    /// @return composite Weighted reputation score combining onchain track record and Nansen signal
+    function getReputation(uint256 agentId) external view override returns (int256 composite) {
+        if (!identityRegistry.isRegistered(agentId)) revert AgentDoesNotExist();
+
+        ReputationMetrics memory m = _metrics[agentId];
+
+        // Base score = 100, +50 per success, -150 per failure, + (nansenScore * 5)
+        int256 base = 100;
+        int256 onchainComponent = (int256(uint256(m.successfulJobs)) * 50) - (int256(uint256(m.failedJobs)) * 150);
+        int256 nansenComponent = m.nansenScore * 5;
+
+        composite = base + onchainComponent + nansenComponent;
     }
 
-    /// @notice Returns the count of feedbacks received by an agent
-    /// @param agentId Unique agent ID
-    function getFeedbackCount(uint256 agentId) external view override returns (uint256) {
-        return _agentFeedbacks[agentId].length;
+    /// @notice Returns raw metrics for an agent
+    /// @param agentId Unique agent identifier
+    function getMetrics(uint256 agentId) external view override returns (ReputationMetrics memory) {
+        if (!identityRegistry.isRegistered(agentId)) revert AgentDoesNotExist();
+        return _metrics[agentId];
     }
 }

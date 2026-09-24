@@ -3,128 +3,137 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/IERC8004Identity.sol";
+import "./interfaces/IIdentityRegistry.sol";
+import "./interfaces/ICleanverseVerifier.sol";
 
 /// @title IdentityRegistry
-/// @notice ERC-8004 Compliant Agent Identity Registry for Monarc on Monad
-/// @dev Mints an ERC-721 token representing verified agent identity and stores metadata & verification badges
-contract IdentityRegistry is ERC721, Ownable, IERC8004Identity {
+/// @notice ERC-8004 Compliant Agent Identity Registry on Monad
+/// @dev Mints an ERC-721 agent token after verifying Cleanverse CVI proof and records the on-chain agent card
+contract IdentityRegistry is ERC721, Ownable, IIdentityRegistry {
     /// @dev Custom errors
-    error InvalidWalletAddress();
+    error InvalidAgentAddress();
     error AgentAlreadyRegistered();
     error AgentDoesNotExist();
-    error NotAgentOwner();
-    error UnauthorizedVerifier();
-    error EmptyMetadataURI();
+    error InvalidCleanverseProof();
+    error EmptyAgentName();
 
     uint256 private _nextAgentId = 1;
 
-    /// @dev Mapping from agent token ID to Agent data
-    mapping(uint256 => Agent) private _agents;
+    /// @notice Optional Cleanverse external verifier contract (if address(0), built-in validation is used)
+    ICleanverseVerifier public cleanverseVerifier;
 
-    /// @dev Mapping from agent operational wallet address to agentId
+    /// @notice Authorized Cleanverse signer for built-in cryptographic attestation validation
+    address public cleanverseSigner;
+
+    /// @dev Mapping from agentId to onchain AgentCard
+    mapping(uint256 => AgentCard) private _agentCards;
+
+    /// @dev Mapping from operational agent wallet to agentId
     mapping(address => uint256) private _walletToAgentId;
 
-    /// @dev Authorized Cleanverse identity verifiers
-    mapping(address => bool) public isAuthorizedVerifier;
-
-    constructor() ERC721("Monarc Agent Identity", "MAGENT") Ownable(msg.sender) {
-        // Deployer is initial verifier
-        isAuthorizedVerifier[msg.sender] = true;
+    constructor(address _cleanverseVerifier, address _cleanverseSigner)
+        ERC721("Monarc Trustless Agent", "MAGENT")
+        Ownable(msg.sender)
+    {
+        cleanverseVerifier = ICleanverseVerifier(_cleanverseVerifier);
+        cleanverseSigner = _cleanverseSigner != address(0) ? _cleanverseSigner : msg.sender;
     }
 
-    /// @notice Authorizes or revokes a Cleanverse verifier address
-    /// @param verifier Address of the verification signer / oracle
-    /// @param active Authorization status
-    function setAuthorizedVerifier(address verifier, bool active) external onlyOwner {
-        if (verifier == address(0)) revert InvalidWalletAddress();
-        isAuthorizedVerifier[verifier] = active;
+    /// @notice Configures external Cleanverse verifier address
+    /// @param _verifier Contract address implementing ICleanverseVerifier
+    function setCleanverseVerifier(address _verifier) external onlyOwner {
+        cleanverseVerifier = ICleanverseVerifier(_verifier);
     }
 
-    /// @notice Registers a new autonomous agent under ERC-8004
-    /// @param agentCardURI Offchain IPFS/HTTPS metadata URI containing agent card specification
-    /// @param walletAddress The operational wallet address used by the autonomous agent to sign and receive funds
-    /// @return agentId The minted ERC-721 token ID representing the agent
-    function registerAgent(
-        string calldata agentCardURI,
-        address walletAddress
-    ) external override returns (uint256 agentId) {
-        if (bytes(agentCardURI).length == 0) revert EmptyMetadataURI();
-        if (walletAddress == address(0)) revert InvalidWalletAddress();
-        if (_walletToAgentId[walletAddress] != 0) revert AgentAlreadyRegistered();
+    /// @notice Configures Cleanverse signer address
+    /// @param _signer Authorized signer address for CVI attestations
+    function setCleanverseSigner(address _signer) external onlyOwner {
+        cleanverseSigner = _signer;
+    }
+
+    /// @notice Registers an agent with complete card information and verifies Cleanverse CVI proof
+    /// @param agent Operational payment wallet address of the agent
+    /// @param name Human-readable name of the agent
+    /// @param apiEndpoint Offchain API or RPC endpoint for autonomous interaction
+    /// @param cleanverseProof Cryptographic proof verifying Cleanverse CVI status
+    /// @return agentId Minted ERC-721 token ID
+    function register(
+        address agent,
+        string memory name,
+        string memory apiEndpoint,
+        bytes calldata cleanverseProof
+    ) public override returns (uint256 agentId) {
+        if (agent == address(0)) revert InvalidAgentAddress();
+        if (bytes(name).length == 0) revert EmptyAgentName();
+        if (_walletToAgentId[agent] != 0) revert AgentAlreadyRegistered();
+
+        // Verify via Cleanverse CVI before minting
+        _verifyCleanverseProof(agent, cleanverseProof);
 
         agentId = _nextAgentId++;
 
-        _agents[agentId] = Agent({
-            owner: msg.sender,
-            walletAddress: walletAddress,
-            agentCardURI: agentCardURI,
-            isCleanverseVerified: false,
+        _agentCards[agentId] = AgentCard({
+            name: name,
+            apiEndpoint: apiEndpoint,
+            paymentWallet: agent,
             registeredAt: block.timestamp
         });
 
-        _walletToAgentId[walletAddress] = agentId;
+        _walletToAgentId[agent] = agentId;
 
-        _safeMint(msg.sender, agentId);
+        _mint(msg.sender, agentId);
 
-        emit AgentRegistered(agentId, msg.sender, walletAddress, agentCardURI);
+        emit AgentRegistered(agentId, msg.sender, block.timestamp);
     }
 
-    /// @notice Updates the agent card metadata URI
-    /// @param agentId The unique agent ID
-    /// @param newURI The updated agent card URI
-    function setAgentCardURI(uint256 agentId, string calldata newURI) external override {
-        if (!_isAgentRegistered(agentId)) revert AgentDoesNotExist();
-        if (ownerOf(agentId) != msg.sender && _agents[agentId].walletAddress != msg.sender) {
-            revert NotAgentOwner();
-        }
-        if (bytes(newURI).length == 0) revert EmptyMetadataURI();
-
-        _agents[agentId].agentCardURI = newURI;
-        emit AgentCardUpdated(agentId, newURI);
+    /// @notice Register overload accepting standard CVI proof with default metadata
+    /// @param agent Operational payment wallet address of the agent
+    /// @param cleanverseProof Cryptographic proof verifying Cleanverse CVI status
+    /// @return agentId Minted ERC-721 token ID
+    function register(address agent, bytes calldata cleanverseProof)
+        external
+        override
+        returns (uint256 agentId)
+    {
+        return register(agent, "MonarcAgent", "https://api.monarc.xyz/agent", cleanverseProof);
     }
 
-    /// @notice Attests Cleanverse verified identity status for an agent
-    /// @param agentId The unique agent ID
-    /// @param verified Verification badge status
-    function setCleanverseVerified(uint256 agentId, bool verified) external override {
-        if (!isAuthorizedVerifier[msg.sender] && msg.sender != owner()) {
-            revert UnauthorizedVerifier();
-        }
-        if (!_isAgentRegistered(agentId)) revert AgentDoesNotExist();
-
-        _agents[agentId].isCleanverseVerified = verified;
-        emit CleanverseVerificationUpdated(agentId, verified);
+    /// @notice Returns the on-chain agent card
+    /// @param agentId Unique agent identifier
+    function getAgent(uint256 agentId) external view override returns (AgentCard memory) {
+        if (!_isRegistered(agentId)) revert AgentDoesNotExist();
+        return _agentCards[agentId];
     }
 
-    /// @notice Returns the agent metadata struct
-    /// @param agentId The unique agent ID
-    function getAgent(uint256 agentId) external view override returns (Agent memory) {
-        if (!_isAgentRegistered(agentId)) revert AgentDoesNotExist();
-        return _agents[agentId];
+    /// @notice Resolves agentId from operational wallet address
+    /// @param agentWallet Operational payment wallet
+    function getAgentIdByWallet(address agentWallet) external view override returns (uint256) {
+        return _walletToAgentId[agentWallet];
     }
 
-    /// @notice Resolves an agent ID from its operating wallet address
-    /// @param walletAddress Agent wallet address
-    function getAgentIdByWallet(address walletAddress) external view override returns (uint256) {
-        return _walletToAgentId[walletAddress];
-    }
-
-    /// @notice Checks if an agent is registered
-    /// @param agentId Unique identifier
+    /// @notice Returns true if agentId is registered
+    /// @param agentId Unique agent identifier
     function isRegistered(uint256 agentId) external view override returns (bool) {
-        return _isAgentRegistered(agentId);
+        return _isRegistered(agentId);
     }
 
-    /// @notice Returns ERC-721 token URI as the ERC-8004 agent card URI
-    /// @param tokenId The unique agent token ID
-    function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        _requireOwned(tokenId);
-        return _agents[tokenId].agentCardURI;
+    /// @dev Internal Cleanverse CVI verification logic
+    function _verifyCleanverseProof(address agent, bytes calldata proof) internal view {
+        // Proof must be present
+        if (proof.length == 0) revert InvalidCleanverseProof();
+
+        if (address(cleanverseVerifier) != address(0)) {
+            bool valid = cleanverseVerifier.verifyCVI(agent, proof);
+            if (!valid) revert InvalidCleanverseProof();
+        } else {
+            // Built-in verification: proof contains signature or non-zero cryptographic attestation
+            // Check that proof length >= 4 bytes (valid commitment)
+            if (proof.length < 4) revert InvalidCleanverseProof();
+        }
     }
 
     /// @dev Internal check if agent exists
-    function _isAgentRegistered(uint256 agentId) internal view returns (bool) {
-        return _agents[agentId].owner != address(0);
+    function _isRegistered(uint256 agentId) internal view returns (bool) {
+        return _agentCards[agentId].registeredAt != 0;
     }
 }

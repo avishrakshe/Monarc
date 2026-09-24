@@ -2,7 +2,16 @@
     {
         "type":  "constructor",
         "inputs":  [
-
+                       {
+                           "name":  "_cleanverseVerifier",
+                           "type":  "address",
+                           "internalType":  "address"
+                       },
+                       {
+                           "name":  "_cleanverseSigner",
+                           "type":  "address",
+                           "internalType":  "address"
+                       }
                    ],
         "stateMutability":  "nonpayable"
     },
@@ -47,6 +56,36 @@
     },
     {
         "type":  "function",
+        "name":  "cleanverseSigner",
+        "inputs":  [
+
+                   ],
+        "outputs":  [
+                        {
+                            "name":  "",
+                            "type":  "address",
+                            "internalType":  "address"
+                        }
+                    ],
+        "stateMutability":  "view"
+    },
+    {
+        "type":  "function",
+        "name":  "cleanverseVerifier",
+        "inputs":  [
+
+                   ],
+        "outputs":  [
+                        {
+                            "name":  "",
+                            "type":  "address",
+                            "internalType":  "contract ICleanverseVerifier"
+                        }
+                    ],
+        "stateMutability":  "view"
+    },
+    {
+        "type":  "function",
         "name":  "getAgent",
         "inputs":  [
                        {
@@ -59,27 +98,22 @@
                         {
                             "name":  "",
                             "type":  "tuple",
-                            "internalType":  "struct IERC8004Identity.Agent",
+                            "internalType":  "struct IIdentityRegistry.AgentCard",
                             "components":  [
                                                {
-                                                   "name":  "owner",
-                                                   "type":  "address",
-                                                   "internalType":  "address"
-                                               },
-                                               {
-                                                   "name":  "walletAddress",
-                                                   "type":  "address",
-                                                   "internalType":  "address"
-                                               },
-                                               {
-                                                   "name":  "agentCardURI",
+                                                   "name":  "name",
                                                    "type":  "string",
                                                    "internalType":  "string"
                                                },
                                                {
-                                                   "name":  "isCleanverseVerified",
-                                                   "type":  "bool",
-                                                   "internalType":  "bool"
+                                                   "name":  "apiEndpoint",
+                                                   "type":  "string",
+                                                   "internalType":  "string"
+                                               },
+                                               {
+                                                   "name":  "paymentWallet",
+                                                   "type":  "address",
+                                                   "internalType":  "address"
                                                },
                                                {
                                                    "name":  "registeredAt",
@@ -96,7 +130,7 @@
         "name":  "getAgentIdByWallet",
         "inputs":  [
                        {
-                           "name":  "walletAddress",
+                           "name":  "agentWallet",
                            "type":  "address",
                            "internalType":  "address"
                        }
@@ -140,25 +174,6 @@
                        },
                        {
                            "name":  "operator",
-                           "type":  "address",
-                           "internalType":  "address"
-                       }
-                   ],
-        "outputs":  [
-                        {
-                            "name":  "",
-                            "type":  "bool",
-                            "internalType":  "bool"
-                        }
-                    ],
-        "stateMutability":  "view"
-    },
-    {
-        "type":  "function",
-        "name":  "isAuthorizedVerifier",
-        "inputs":  [
-                       {
-                           "name":  "",
                            "type":  "address",
                            "internalType":  "address"
                        }
@@ -242,17 +257,51 @@
     },
     {
         "type":  "function",
-        "name":  "registerAgent",
+        "name":  "register",
         "inputs":  [
                        {
-                           "name":  "agentCardURI",
+                           "name":  "agent",
+                           "type":  "address",
+                           "internalType":  "address"
+                       },
+                       {
+                           "name":  "cleanverseProof",
+                           "type":  "bytes",
+                           "internalType":  "bytes"
+                       }
+                   ],
+        "outputs":  [
+                        {
+                            "name":  "agentId",
+                            "type":  "uint256",
+                            "internalType":  "uint256"
+                        }
+                    ],
+        "stateMutability":  "nonpayable"
+    },
+    {
+        "type":  "function",
+        "name":  "register",
+        "inputs":  [
+                       {
+                           "name":  "agent",
+                           "type":  "address",
+                           "internalType":  "address"
+                       },
+                       {
+                           "name":  "name",
                            "type":  "string",
                            "internalType":  "string"
                        },
                        {
-                           "name":  "walletAddress",
-                           "type":  "address",
-                           "internalType":  "address"
+                           "name":  "apiEndpoint",
+                           "type":  "string",
+                           "internalType":  "string"
+                       },
+                       {
+                           "name":  "cleanverseProof",
+                           "type":  "bytes",
+                           "internalType":  "bytes"
                        }
                    ],
         "outputs":  [
@@ -332,26 +381,6 @@
     },
     {
         "type":  "function",
-        "name":  "setAgentCardURI",
-        "inputs":  [
-                       {
-                           "name":  "agentId",
-                           "type":  "uint256",
-                           "internalType":  "uint256"
-                       },
-                       {
-                           "name":  "newURI",
-                           "type":  "string",
-                           "internalType":  "string"
-                       }
-                   ],
-        "outputs":  [
-
-                    ],
-        "stateMutability":  "nonpayable"
-    },
-    {
-        "type":  "function",
         "name":  "setApprovalForAll",
         "inputs":  [
                        {
@@ -372,17 +401,12 @@
     },
     {
         "type":  "function",
-        "name":  "setAuthorizedVerifier",
+        "name":  "setCleanverseSigner",
         "inputs":  [
                        {
-                           "name":  "verifier",
+                           "name":  "_signer",
                            "type":  "address",
                            "internalType":  "address"
-                       },
-                       {
-                           "name":  "active",
-                           "type":  "bool",
-                           "internalType":  "bool"
                        }
                    ],
         "outputs":  [
@@ -392,17 +416,12 @@
     },
     {
         "type":  "function",
-        "name":  "setCleanverseVerified",
+        "name":  "setCleanverseVerifier",
         "inputs":  [
                        {
-                           "name":  "agentId",
-                           "type":  "uint256",
-                           "internalType":  "uint256"
-                       },
-                       {
-                           "name":  "verified",
-                           "type":  "bool",
-                           "internalType":  "bool"
+                           "name":  "_verifier",
+                           "type":  "address",
+                           "internalType":  "address"
                        }
                    ],
         "outputs":  [
@@ -505,25 +524,6 @@
     },
     {
         "type":  "event",
-        "name":  "AgentCardUpdated",
-        "inputs":  [
-                       {
-                           "name":  "agentId",
-                           "type":  "uint256",
-                           "indexed":  true,
-                           "internalType":  "uint256"
-                       },
-                       {
-                           "name":  "newURI",
-                           "type":  "string",
-                           "indexed":  false,
-                           "internalType":  "string"
-                       }
-                   ],
-        "anonymous":  false
-    },
-    {
-        "type":  "event",
         "name":  "AgentRegistered",
         "inputs":  [
                        {
@@ -539,16 +539,10 @@
                            "internalType":  "address"
                        },
                        {
-                           "name":  "walletAddress",
-                           "type":  "address",
-                           "indexed":  true,
-                           "internalType":  "address"
-                       },
-                       {
-                           "name":  "agentCardURI",
-                           "type":  "string",
+                           "name":  "verifiedAt",
+                           "type":  "uint256",
                            "indexed":  false,
-                           "internalType":  "string"
+                           "internalType":  "uint256"
                        }
                    ],
         "anonymous":  false
@@ -596,25 +590,6 @@
                        },
                        {
                            "name":  "approved",
-                           "type":  "bool",
-                           "indexed":  false,
-                           "internalType":  "bool"
-                       }
-                   ],
-        "anonymous":  false
-    },
-    {
-        "type":  "event",
-        "name":  "CleanverseVerificationUpdated",
-        "inputs":  [
-                       {
-                           "name":  "agentId",
-                           "type":  "uint256",
-                           "indexed":  true,
-                           "internalType":  "uint256"
-                       },
-                       {
-                           "name":  "verified",
                            "type":  "bool",
                            "indexed":  false,
                            "internalType":  "bool"
@@ -785,21 +760,21 @@
     },
     {
         "type":  "error",
-        "name":  "EmptyMetadataURI",
+        "name":  "EmptyAgentName",
         "inputs":  [
 
                    ]
     },
     {
         "type":  "error",
-        "name":  "InvalidWalletAddress",
+        "name":  "InvalidAgentAddress",
         "inputs":  [
 
                    ]
     },
     {
         "type":  "error",
-        "name":  "NotAgentOwner",
+        "name":  "InvalidCleanverseProof",
         "inputs":  [
 
                    ]
@@ -824,13 +799,6 @@
                            "type":  "address",
                            "internalType":  "address"
                        }
-                   ]
-    },
-    {
-        "type":  "error",
-        "name":  "UnauthorizedVerifier",
-        "inputs":  [
-
                    ]
     }
 ]

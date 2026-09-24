@@ -9,60 +9,53 @@ contract ReputationRegistryTest is Test {
     IdentityRegistry public identity;
     ReputationRegistry public reputation;
 
-    address public reporter = address(0x501);
-    address public client = address(0x601);
-    address public agentOwner = address(0x101);
-    address public agentWallet = address(0x201);
+    address public nansenWriter = address(0x201);
+    address public settlement = address(0x301);
+    address public agent1Wallet = address(0x101);
     uint256 public agentId;
 
     function setUp() public {
-        identity = new IdentityRegistry();
-        reputation = new ReputationRegistry(address(identity));
+        identity = new IdentityRegistry(address(0), address(this));
+        reputation = new ReputationRegistry(address(identity), nansenWriter);
+        reputation.setPaymentSettlement(settlement);
 
-        reputation.setAuthorizedReporter(reporter, true);
-
-        vm.prank(agentOwner);
-        agentId = identity.registerAgent("ipfs://QmAgentCard", agentWallet);
+        agentId = identity.register(agent1Wallet, hex"deadbeef");
     }
 
-    function test_GiveFeedbackAndComputeAverage() public {
-        vm.prank(client);
-        reputation.giveFeedback(agentId, 90, "defi-audit", "Flawless arbitrage execution", keccak256("job1"));
+    function test_RecordOutcomeOnlyBySettlement() public {
+        vm.prank(settlement);
+        reputation.recordOutcome(agentId, true, 2);
 
-        vm.prank(client);
-        reputation.giveFeedback(agentId, 80, "arbitrage", "Good speed and gas efficiency", keccak256("job2"));
+        int256 rep = reputation.getReputation(agentId);
+        // Base 100 + 50 = 150
+        assertEq(rep, 150);
 
-        IERC8004Reputation.AgentReputationSummary memory summary = reputation.getSummary(agentId);
-        assertEq(summary.feedbackCount, 2);
-        assertEq(summary.averageScore, 85);
-        assertEq(reputation.getFeedbackCount(agentId), 2);
-
-        IERC8004Reputation.Feedback memory f0 = reputation.getFeedback(agentId, 0);
-        assertEq(f0.reviewer, client);
-        assertEq(f0.score, 90);
+        // Record failure
+        vm.prank(settlement);
+        reputation.recordOutcome(agentId, false, 3);
+        // 150 - 150 = 0
+        rep = reputation.getReputation(agentId);
+        assertEq(rep, 0);
     }
 
-    function test_RecordJobCompletionByAuthorizedReporter() public {
-        vm.prank(reporter);
-        reputation.recordJobCompletion(agentId, 5 ether, true);
-
-        IERC8004Reputation.AgentReputationSummary memory summary = reputation.getSummary(agentId);
-        assertEq(summary.totalCompletedJobs, 1);
-        assertEq(summary.totalEarned, 5 ether);
-        assertEq(summary.totalDisputedJobs, 0);
-
-        // Record disputed failure
-        vm.prank(reporter);
-        reputation.recordJobCompletion(agentId, 0, false);
-
-        summary = reputation.getSummary(agentId);
-        assertEq(summary.totalCompletedJobs, 1);
-        assertEq(summary.totalDisputedJobs, 1);
-    }
-
-    function test_RevertIfUnauthorizedReporter() public {
+    function test_RevertRecordOutcomeUnauthorized() public {
         vm.prank(address(0x999));
-        vm.expectRevert(ReputationRegistry.UnauthorizedCaller.selector);
-        reputation.recordJobCompletion(agentId, 1 ether, true);
+        vm.expectRevert(ReputationRegistry.UnauthorizedPaymentSettlement.selector);
+        reputation.recordOutcome(agentId, true, 2);
+    }
+
+    function test_UpdateExternalSignalNansen() public {
+        vm.prank(nansenWriter);
+        reputation.updateExternalSignal(agentId, 85, block.timestamp);
+
+        // Base 100 + (85 * 5) = 100 + 425 = 525
+        int256 rep = reputation.getReputation(agentId);
+        assertEq(rep, 525);
+    }
+
+    function test_RevertUpdateExternalSignalUnauthorized() public {
+        vm.prank(address(0x999));
+        vm.expectRevert(ReputationRegistry.UnauthorizedSignalWriter.selector);
+        reputation.updateExternalSignal(agentId, 90, block.timestamp);
     }
 }

@@ -6,88 +6,18 @@
                            "name":  "_identityRegistry",
                            "type":  "address",
                            "internalType":  "address"
+                       },
+                       {
+                           "name":  "_nansenSignalWriter",
+                           "type":  "address",
+                           "internalType":  "address"
                        }
                    ],
         "stateMutability":  "nonpayable"
     },
     {
         "type":  "function",
-        "name":  "getFeedback",
-        "inputs":  [
-                       {
-                           "name":  "agentId",
-                           "type":  "uint256",
-                           "internalType":  "uint256"
-                       },
-                       {
-                           "name":  "index",
-                           "type":  "uint256",
-                           "internalType":  "uint256"
-                       }
-                   ],
-        "outputs":  [
-                        {
-                            "name":  "",
-                            "type":  "tuple",
-                            "internalType":  "struct IERC8004Reputation.Feedback",
-                            "components":  [
-                                               {
-                                                   "name":  "reviewer",
-                                                   "type":  "address",
-                                                   "internalType":  "address"
-                                               },
-                                               {
-                                                   "name":  "score",
-                                                   "type":  "uint8",
-                                                   "internalType":  "uint8"
-                                               },
-                                               {
-                                                   "name":  "tag",
-                                                   "type":  "string",
-                                                   "internalType":  "string"
-                                               },
-                                               {
-                                                   "name":  "comments",
-                                                   "type":  "string",
-                                                   "internalType":  "string"
-                                               },
-                                               {
-                                                   "name":  "jobHash",
-                                                   "type":  "bytes32",
-                                                   "internalType":  "bytes32"
-                                               },
-                                               {
-                                                   "name":  "timestamp",
-                                                   "type":  "uint256",
-                                                   "internalType":  "uint256"
-                                               }
-                                           ]
-                        }
-                    ],
-        "stateMutability":  "view"
-    },
-    {
-        "type":  "function",
-        "name":  "getFeedbackCount",
-        "inputs":  [
-                       {
-                           "name":  "agentId",
-                           "type":  "uint256",
-                           "internalType":  "uint256"
-                       }
-                   ],
-        "outputs":  [
-                        {
-                            "name":  "",
-                            "type":  "uint256",
-                            "internalType":  "uint256"
-                        }
-                    ],
-        "stateMutability":  "view"
-    },
-    {
-        "type":  "function",
-        "name":  "getSummary",
+        "name":  "getMetrics",
         "inputs":  [
                        {
                            "name":  "agentId",
@@ -99,30 +29,25 @@
                         {
                             "name":  "",
                             "type":  "tuple",
-                            "internalType":  "struct IERC8004Reputation.AgentReputationSummary",
+                            "internalType":  "struct IReputationRegistry.ReputationMetrics",
                             "components":  [
                                                {
-                                                   "name":  "totalCompletedJobs",
+                                                   "name":  "successfulJobs",
                                                    "type":  "uint64",
                                                    "internalType":  "uint64"
                                                },
                                                {
-                                                   "name":  "totalDisputedJobs",
+                                                   "name":  "failedJobs",
                                                    "type":  "uint64",
                                                    "internalType":  "uint64"
                                                },
                                                {
-                                                   "name":  "totalEarned",
-                                                   "type":  "uint128",
-                                                   "internalType":  "uint128"
+                                                   "name":  "nansenScore",
+                                                   "type":  "int256",
+                                                   "internalType":  "int256"
                                                },
                                                {
-                                                   "name":  "averageScore",
-                                                   "type":  "uint32",
-                                                   "internalType":  "uint32"
-                                               },
-                                               {
-                                                   "name":  "feedbackCount",
+                                                   "name":  "lastNansenUpdate",
                                                    "type":  "uint256",
                                                    "internalType":  "uint256"
                                                }
@@ -133,38 +58,22 @@
     },
     {
         "type":  "function",
-        "name":  "giveFeedback",
+        "name":  "getReputation",
         "inputs":  [
                        {
                            "name":  "agentId",
                            "type":  "uint256",
                            "internalType":  "uint256"
-                       },
-                       {
-                           "name":  "score",
-                           "type":  "uint8",
-                           "internalType":  "uint8"
-                       },
-                       {
-                           "name":  "tag",
-                           "type":  "string",
-                           "internalType":  "string"
-                       },
-                       {
-                           "name":  "comments",
-                           "type":  "string",
-                           "internalType":  "string"
-                       },
-                       {
-                           "name":  "jobHash",
-                           "type":  "bytes32",
-                           "internalType":  "bytes32"
                        }
                    ],
         "outputs":  [
-
+                        {
+                            "name":  "composite",
+                            "type":  "int256",
+                            "internalType":  "int256"
+                        }
                     ],
-        "stateMutability":  "nonpayable"
+        "stateMutability":  "view"
     },
     {
         "type":  "function",
@@ -176,26 +85,22 @@
                         {
                             "name":  "",
                             "type":  "address",
-                            "internalType":  "contract IERC8004Identity"
+                            "internalType":  "contract IIdentityRegistry"
                         }
                     ],
         "stateMutability":  "view"
     },
     {
         "type":  "function",
-        "name":  "isAuthorizedReporter",
+        "name":  "nansenSignalWriter",
         "inputs":  [
-                       {
-                           "name":  "",
-                           "type":  "address",
-                           "internalType":  "address"
-                       }
+
                    ],
         "outputs":  [
                         {
                             "name":  "",
-                            "type":  "bool",
-                            "internalType":  "bool"
+                            "type":  "address",
+                            "internalType":  "address"
                         }
                     ],
         "stateMutability":  "view"
@@ -217,7 +122,22 @@
     },
     {
         "type":  "function",
-        "name":  "recordJobCompletion",
+        "name":  "paymentSettlement",
+        "inputs":  [
+
+                   ],
+        "outputs":  [
+                        {
+                            "name":  "",
+                            "type":  "address",
+                            "internalType":  "address"
+                        }
+                    ],
+        "stateMutability":  "view"
+    },
+    {
+        "type":  "function",
+        "name":  "recordOutcome",
         "inputs":  [
                        {
                            "name":  "agentId",
@@ -225,14 +145,14 @@
                            "internalType":  "uint256"
                        },
                        {
-                           "name":  "paymentAmount",
-                           "type":  "uint256",
-                           "internalType":  "uint256"
-                       },
-                       {
                            "name":  "success",
                            "type":  "bool",
                            "internalType":  "bool"
+                       },
+                       {
+                           "name":  "counterpartyId",
+                           "type":  "uint256",
+                           "internalType":  "uint256"
                        }
                    ],
         "outputs":  [
@@ -253,17 +173,27 @@
     },
     {
         "type":  "function",
-        "name":  "setAuthorizedReporter",
+        "name":  "setNansenSignalWriter",
         "inputs":  [
                        {
-                           "name":  "reporter",
+                           "name":  "_writer",
                            "type":  "address",
                            "internalType":  "address"
-                       },
+                       }
+                   ],
+        "outputs":  [
+
+                    ],
+        "stateMutability":  "nonpayable"
+    },
+    {
+        "type":  "function",
+        "name":  "setPaymentSettlement",
+        "inputs":  [
                        {
-                           "name":  "active",
-                           "type":  "bool",
-                           "internalType":  "bool"
+                           "name":  "_paymentSettlement",
+                           "type":  "address",
+                           "internalType":  "address"
                        }
                    ],
         "outputs":  [
@@ -287,8 +217,33 @@
         "stateMutability":  "nonpayable"
     },
     {
+        "type":  "function",
+        "name":  "updateExternalSignal",
+        "inputs":  [
+                       {
+                           "name":  "agentId",
+                           "type":  "uint256",
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "nansenScore",
+                           "type":  "int256",
+                           "internalType":  "int256"
+                       },
+                       {
+                           "name":  "timestamp",
+                           "type":  "uint256",
+                           "internalType":  "uint256"
+                       }
+                   ],
+        "outputs":  [
+
+                    ],
+        "stateMutability":  "nonpayable"
+    },
+    {
         "type":  "event",
-        "name":  "FeedbackSubmitted",
+        "name":  "ExternalSignalUpdated",
         "inputs":  [
                        {
                            "name":  "agentId",
@@ -297,46 +252,28 @@
                            "internalType":  "uint256"
                        },
                        {
-                           "name":  "reviewer",
-                           "type":  "address",
-                           "indexed":  true,
-                           "internalType":  "address"
+                           "name":  "nansenScore",
+                           "type":  "int256",
+                           "indexed":  false,
+                           "internalType":  "int256"
                        },
                        {
-                           "name":  "score",
-                           "type":  "uint8",
+                           "name":  "timestamp",
+                           "type":  "uint256",
                            "indexed":  false,
-                           "internalType":  "uint8"
-                       },
-                       {
-                           "name":  "tag",
-                           "type":  "string",
-                           "indexed":  false,
-                           "internalType":  "string"
-                       },
-                       {
-                           "name":  "jobHash",
-                           "type":  "bytes32",
-                           "indexed":  false,
-                           "internalType":  "bytes32"
+                           "internalType":  "uint256"
                        }
                    ],
         "anonymous":  false
     },
     {
         "type":  "event",
-        "name":  "JobSettlementRecorded",
+        "name":  "OutcomeRecorded",
         "inputs":  [
                        {
                            "name":  "agentId",
                            "type":  "uint256",
                            "indexed":  true,
-                           "internalType":  "uint256"
-                       },
-                       {
-                           "name":  "paymentAmount",
-                           "type":  "uint256",
-                           "indexed":  false,
                            "internalType":  "uint256"
                        },
                        {
@@ -344,6 +281,18 @@
                            "type":  "bool",
                            "indexed":  false,
                            "internalType":  "bool"
+                       },
+                       {
+                           "name":  "counterpartyId",
+                           "type":  "uint256",
+                           "indexed":  true,
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "timestamp",
+                           "type":  "uint256",
+                           "indexed":  false,
+                           "internalType":  "uint256"
                        }
                    ],
         "anonymous":  false
@@ -376,13 +325,6 @@
     },
     {
         "type":  "error",
-        "name":  "FeedbackIndexOutOfBounds",
-        "inputs":  [
-
-                   ]
-    },
-    {
-        "type":  "error",
         "name":  "InvalidIdentityRegistry",
         "inputs":  [
 
@@ -390,7 +332,7 @@
     },
     {
         "type":  "error",
-        "name":  "InvalidScore",
+        "name":  "InvalidTimestamp",
         "inputs":  [
 
                    ]
@@ -419,7 +361,14 @@
     },
     {
         "type":  "error",
-        "name":  "UnauthorizedCaller",
+        "name":  "UnauthorizedPaymentSettlement",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "UnauthorizedSignalWriter",
         "inputs":  [
 
                    ]

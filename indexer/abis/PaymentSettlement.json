@@ -3,12 +3,22 @@
         "type":  "constructor",
         "inputs":  [
                        {
+                           "name":  "_paymentToken",
+                           "type":  "address",
+                           "internalType":  "address"
+                       },
+                       {
                            "name":  "_identityRegistry",
                            "type":  "address",
                            "internalType":  "address"
                        },
                        {
                            "name":  "_reputationRegistry",
+                           "type":  "address",
+                           "internalType":  "address"
+                       },
+                       {
+                           "name":  "_stakeManager",
                            "type":  "address",
                            "internalType":  "address"
                        },
@@ -28,19 +38,9 @@
                            "name":  "jobId",
                            "type":  "uint256",
                            "internalType":  "uint256"
-                       }
-                   ],
-        "outputs":  [
-
-                    ],
-        "stateMutability":  "payable"
-    },
-    {
-        "type":  "function",
-        "name":  "cancelJob",
-        "inputs":  [
+                       },
                        {
-                           "name":  "jobId",
+                           "name":  "workerId",
                            "type":  "uint256",
                            "internalType":  "uint256"
                        }
@@ -52,7 +52,22 @@
     },
     {
         "type":  "function",
-        "name":  "claimPayment",
+        "name":  "challengeWindow",
+        "inputs":  [
+
+                   ],
+        "outputs":  [
+                        {
+                            "name":  "",
+                            "type":  "uint256",
+                            "internalType":  "uint256"
+                        }
+                    ],
+        "stateMutability":  "view"
+    },
+    {
+        "type":  "function",
+        "name":  "confirmDelivery",
         "inputs":  [
                        {
                            "name":  "jobId",
@@ -70,27 +85,17 @@
         "name":  "createJob",
         "inputs":  [
                        {
-                           "name":  "employerAgentId",
+                           "name":  "posterId",
                            "type":  "uint256",
                            "internalType":  "uint256"
                        },
                        {
-                           "name":  "workerAgentId",
+                           "name":  "amount",
                            "type":  "uint256",
                            "internalType":  "uint256"
                        },
                        {
-                           "name":  "workerStakeRequired",
-                           "type":  "uint256",
-                           "internalType":  "uint256"
-                       },
-                       {
-                           "name":  "challengePeriodSeconds",
-                           "type":  "uint256",
-                           "internalType":  "uint256"
-                       },
-                       {
-                           "name":  "jobSpecHash",
+                           "name":  "deliverableSpec",
                            "type":  "bytes32",
                            "internalType":  "bytes32"
                        }
@@ -102,22 +107,22 @@
                             "internalType":  "uint256"
                         }
                     ],
-        "stateMutability":  "payable"
+        "stateMutability":  "nonpayable"
     },
     {
         "type":  "function",
-        "name":  "defaultChallengePeriod",
+        "name":  "disputeDelivery",
         "inputs":  [
-
+                       {
+                           "name":  "jobId",
+                           "type":  "uint256",
+                           "internalType":  "uint256"
+                       }
                    ],
         "outputs":  [
-                        {
-                            "name":  "",
-                            "type":  "uint256",
-                            "internalType":  "uint256"
-                        }
+
                     ],
-        "stateMutability":  "view"
+        "stateMutability":  "nonpayable"
     },
     {
         "type":  "function",
@@ -130,6 +135,21 @@
                             "name":  "",
                             "type":  "address",
                             "internalType":  "address"
+                        }
+                    ],
+        "stateMutability":  "view"
+    },
+    {
+        "type":  "function",
+        "name":  "disputeSlashBps",
+        "inputs":  [
+
+                   ],
+        "outputs":  [
+                        {
+                            "name":  "",
+                            "type":  "uint256",
+                            "internalType":  "uint256"
                         }
                     ],
         "stateMutability":  "view"
@@ -156,64 +176,34 @@
                                                    "internalType":  "uint256"
                                                },
                                                {
-                                                   "name":  "employerAgentId",
+                                                   "name":  "posterId",
                                                    "type":  "uint256",
                                                    "internalType":  "uint256"
                                                },
                                                {
-                                                   "name":  "workerAgentId",
+                                                   "name":  "workerId",
                                                    "type":  "uint256",
                                                    "internalType":  "uint256"
                                                },
                                                {
-                                                   "name":  "employerWallet",
-                                                   "type":  "address",
-                                                   "internalType":  "address"
-                                               },
-                                               {
-                                                   "name":  "workerWallet",
-                                                   "type":  "address",
-                                                   "internalType":  "address"
-                                               },
-                                               {
-                                                   "name":  "paymentAmount",
+                                                   "name":  "amount",
                                                    "type":  "uint256",
                                                    "internalType":  "uint256"
                                                },
                                                {
-                                                   "name":  "workerStakeRequired",
-                                                   "type":  "uint256",
-                                                   "internalType":  "uint256"
+                                                   "name":  "deliverableSpec",
+                                                   "type":  "bytes32",
+                                                   "internalType":  "bytes32"
                                                },
                                                {
-                                                   "name":  "workerStakeDeposited",
-                                                   "type":  "uint256",
-                                                   "internalType":  "uint256"
-                                               },
-                                               {
-                                                   "name":  "challengePeriodSeconds",
-                                                   "type":  "uint256",
-                                                   "internalType":  "uint256"
+                                                   "name":  "proofHash",
+                                                   "type":  "bytes32",
+                                                   "internalType":  "bytes32"
                                                },
                                                {
                                                    "name":  "challengeDeadline",
                                                    "type":  "uint256",
                                                    "internalType":  "uint256"
-                                               },
-                                               {
-                                                   "name":  "jobSpecHash",
-                                                   "type":  "bytes32",
-                                                   "internalType":  "bytes32"
-                                               },
-                                               {
-                                                   "name":  "deliveryHash",
-                                                   "type":  "bytes32",
-                                                   "internalType":  "bytes32"
-                                               },
-                                               {
-                                                   "name":  "deliveryURI",
-                                                   "type":  "string",
-                                                   "internalType":  "string"
                                                },
                                                {
                                                    "name":  "status",
@@ -240,7 +230,7 @@
                         {
                             "name":  "",
                             "type":  "address",
-                            "internalType":  "contract IERC8004Identity"
+                            "internalType":  "contract IIdentityRegistry"
                         }
                     ],
         "stateMutability":  "view"
@@ -262,23 +252,18 @@
     },
     {
         "type":  "function",
-        "name":  "raiseDispute",
+        "name":  "paymentToken",
         "inputs":  [
-                       {
-                           "name":  "jobId",
-                           "type":  "uint256",
-                           "internalType":  "uint256"
-                       },
-                       {
-                           "name":  "reason",
-                           "type":  "string",
-                           "internalType":  "string"
-                       }
+
                    ],
         "outputs":  [
-
+                        {
+                            "name":  "",
+                            "type":  "address",
+                            "internalType":  "contract IERC20"
+                        }
                     ],
-        "stateMutability":  "nonpayable"
+        "stateMutability":  "view"
     },
     {
         "type":  "function",
@@ -301,7 +286,7 @@
                         {
                             "name":  "",
                             "type":  "address",
-                            "internalType":  "contract IERC8004Reputation"
+                            "internalType":  "contract IReputationRegistry"
                         }
                     ],
         "stateMutability":  "view"
@@ -316,14 +301,9 @@
                            "internalType":  "uint256"
                        },
                        {
-                           "name":  "favorWorker",
-                           "type":  "bool",
-                           "internalType":  "bool"
-                       },
-                       {
-                           "name":  "resolutionNotes",
-                           "type":  "string",
-                           "internalType":  "string"
+                           "name":  "winnerId",
+                           "type":  "uint256",
+                           "internalType":  "uint256"
                        }
                    ],
         "outputs":  [
@@ -333,10 +313,10 @@
     },
     {
         "type":  "function",
-        "name":  "setDefaultChallengePeriod",
+        "name":  "setChallengeWindow",
         "inputs":  [
                        {
-                           "name":  "newPeriod",
+                           "name":  "_window",
                            "type":  "uint256",
                            "internalType":  "uint256"
                        }
@@ -351,7 +331,7 @@
         "name":  "setDisputeResolver",
         "inputs":  [
                        {
-                           "name":  "newResolver",
+                           "name":  "_resolver",
                            "type":  "address",
                            "internalType":  "address"
                        }
@@ -363,6 +343,21 @@
     },
     {
         "type":  "function",
+        "name":  "stakeManager",
+        "inputs":  [
+
+                   ],
+        "outputs":  [
+                        {
+                            "name":  "",
+                            "type":  "address",
+                            "internalType":  "contract IStakeManager"
+                        }
+                    ],
+        "stateMutability":  "view"
+    },
+    {
+        "type":  "function",
         "name":  "submitDelivery",
         "inputs":  [
                        {
@@ -371,14 +366,9 @@
                            "internalType":  "uint256"
                        },
                        {
-                           "name":  "deliveryHash",
+                           "name":  "proofHash",
                            "type":  "bytes32",
                            "internalType":  "bytes32"
-                       },
-                       {
-                           "name":  "deliveryURI",
-                           "type":  "string",
-                           "internalType":  "string"
                        }
                    ],
         "outputs":  [
@@ -403,7 +393,7 @@
     },
     {
         "type":  "event",
-        "name":  "DeliverySubmitted",
+        "name":  "DeliveryConfirmed",
         "inputs":  [
                        {
                            "name":  "jobId",
@@ -412,19 +402,13 @@
                            "internalType":  "uint256"
                        },
                        {
-                           "name":  "deliveryHash",
-                           "type":  "bytes32",
-                           "indexed":  false,
-                           "internalType":  "bytes32"
+                           "name":  "workerWallet",
+                           "type":  "address",
+                           "indexed":  true,
+                           "internalType":  "address"
                        },
                        {
-                           "name":  "deliveryURI",
-                           "type":  "string",
-                           "indexed":  false,
-                           "internalType":  "string"
-                       },
-                       {
-                           "name":  "challengeDeadline",
+                           "name":  "amount",
                            "type":  "uint256",
                            "indexed":  false,
                            "internalType":  "uint256"
@@ -434,7 +418,7 @@
     },
     {
         "type":  "event",
-        "name":  "DisputeRaised",
+        "name":  "DeliveryDisputed",
         "inputs":  [
                        {
                            "name":  "jobId",
@@ -447,12 +431,31 @@
                            "type":  "address",
                            "indexed":  true,
                            "internalType":  "address"
+                       }
+                   ],
+        "anonymous":  false
+    },
+    {
+        "type":  "event",
+        "name":  "DeliverySubmitted",
+        "inputs":  [
+                       {
+                           "name":  "jobId",
+                           "type":  "uint256",
+                           "indexed":  true,
+                           "internalType":  "uint256"
                        },
                        {
-                           "name":  "reason",
-                           "type":  "string",
+                           "name":  "proofHash",
+                           "type":  "bytes32",
                            "indexed":  false,
-                           "internalType":  "string"
+                           "internalType":  "bytes32"
+                       },
+                       {
+                           "name":  "challengeDeadline",
+                           "type":  "uint256",
+                           "indexed":  false,
+                           "internalType":  "uint256"
                        }
                    ],
         "anonymous":  false
@@ -468,16 +471,22 @@
                            "internalType":  "uint256"
                        },
                        {
-                           "name":  "favorWorker",
-                           "type":  "bool",
-                           "indexed":  false,
-                           "internalType":  "bool"
+                           "name":  "winnerId",
+                           "type":  "uint256",
+                           "indexed":  true,
+                           "internalType":  "uint256"
                        },
                        {
-                           "name":  "resolutionNotes",
-                           "type":  "string",
+                           "name":  "loserId",
+                           "type":  "uint256",
+                           "indexed":  true,
+                           "internalType":  "uint256"
+                       },
+                       {
+                           "name":  "slashedAmount",
+                           "type":  "uint256",
                            "indexed":  false,
-                           "internalType":  "string"
+                           "internalType":  "uint256"
                        }
                    ],
         "anonymous":  false
@@ -493,15 +502,9 @@
                            "internalType":  "uint256"
                        },
                        {
-                           "name":  "workerAgentId",
+                           "name":  "workerId",
                            "type":  "uint256",
                            "indexed":  true,
-                           "internalType":  "uint256"
-                       },
-                       {
-                           "name":  "stakeDeposited",
-                           "type":  "uint256",
-                           "indexed":  false,
                            "internalType":  "uint256"
                        }
                    ],
@@ -531,59 +534,22 @@
                            "internalType":  "uint256"
                        },
                        {
-                           "name":  "employerAgentId",
+                           "name":  "posterId",
                            "type":  "uint256",
                            "indexed":  true,
                            "internalType":  "uint256"
                        },
                        {
-                           "name":  "workerAgentId",
-                           "type":  "uint256",
-                           "indexed":  true,
-                           "internalType":  "uint256"
-                       },
-                       {
-                           "name":  "paymentAmount",
+                           "name":  "amount",
                            "type":  "uint256",
                            "indexed":  false,
                            "internalType":  "uint256"
                        },
                        {
-                           "name":  "workerStakeRequired",
-                           "type":  "uint256",
+                           "name":  "deliverableSpec",
+                           "type":  "bytes32",
                            "indexed":  false,
-                           "internalType":  "uint256"
-                       },
-                       {
-                           "name":  "challengePeriodSeconds",
-                           "type":  "uint256",
-                           "indexed":  false,
-                           "internalType":  "uint256"
-                       }
-                   ],
-        "anonymous":  false
-    },
-    {
-        "type":  "event",
-        "name":  "JobSettled",
-        "inputs":  [
-                       {
-                           "name":  "jobId",
-                           "type":  "uint256",
-                           "indexed":  true,
-                           "internalType":  "uint256"
-                       },
-                       {
-                           "name":  "workerWallet",
-                           "type":  "address",
-                           "indexed":  true,
-                           "internalType":  "address"
-                       },
-                       {
-                           "name":  "totalPayout",
-                           "type":  "uint256",
-                           "indexed":  false,
-                           "internalType":  "uint256"
+                           "internalType":  "bytes32"
                        }
                    ],
         "anonymous":  false
@@ -609,6 +575,13 @@
     },
     {
         "type":  "error",
+        "name":  "AgentDoesNotExist",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
         "name":  "ChallengePeriodElapsed",
         "inputs":  [
 
@@ -623,28 +596,21 @@
     },
     {
         "type":  "error",
-        "name":  "EmptyDeliveryHash",
+        "name":  "EmptyDeliverableSpec",
         "inputs":  [
 
                    ]
     },
     {
         "type":  "error",
-        "name":  "EmptyJobSpec",
+        "name":  "EmptyProofHash",
         "inputs":  [
 
                    ]
     },
     {
         "type":  "error",
-        "name":  "InsufficientWorkerStake",
-        "inputs":  [
-
-                   ]
-    },
-    {
-        "type":  "error",
-        "name":  "InvalidAgentId",
+        "name":  "InvalidAmount",
         "inputs":  [
 
                    ]
@@ -665,7 +631,7 @@
     },
     {
         "type":  "error",
-        "name":  "InvalidPaymentAmount",
+        "name":  "InvalidPaymentToken",
         "inputs":  [
 
                    ]
@@ -686,7 +652,35 @@
     },
     {
         "type":  "error",
+        "name":  "InvalidStakeManager",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "InvalidWinnerId",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
         "name":  "OnlyDisputeResolver",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "OnlyPoster",
+        "inputs":  [
+
+                   ]
+    },
+    {
+        "type":  "error",
+        "name":  "OnlyWorker",
         "inputs":  [
 
                    ]
@@ -722,9 +716,13 @@
     },
     {
         "type":  "error",
-        "name":  "TransferFailed",
+        "name":  "SafeERC20FailedOperation",
         "inputs":  [
-
+                       {
+                           "name":  "token",
+                           "type":  "address",
+                           "internalType":  "address"
+                       }
                    ]
     },
     {

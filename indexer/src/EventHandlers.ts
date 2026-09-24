@@ -1,7 +1,6 @@
 /**
- * Envio HyperIndex Event Handlers for Monarc on Monad Testnet
- * Processes real-time on-chain events from ERC-8004 Identity & Reputation
- * and Machine Payments Protocol (x402) PaymentSettlement.
+ * Envio HyperIndex Event Handlers for Monarc
+ * Indexes AgentRegistered, JobCreated, DeliveryConfirmed, DeliveryDisputed, and Slashed events.
  */
 
 export interface EventContext {
@@ -9,16 +8,16 @@ export interface EventContext {
     get: (id: string) => Promise<AgentEntity | null>;
     set: (entity: AgentEntity) => void;
   };
-  feedback: {
-    set: (entity: FeedbackEntity) => void;
-  };
   job: {
     get: (id: string) => Promise<JobEntity | null>;
     set: (entity: JobEntity) => void;
   };
-  protocolStats: {
-    get: (id: string) => Promise<ProtocolStatsEntity | null>;
-    set: (entity: ProtocolStatsEntity) => void;
+  slashEvent: {
+    set: (entity: SlashEntity) => void;
+  };
+  marketplaceProtocolStats: {
+    get: (id: string) => Promise<StatsEntity | null>;
+    set: (entity: StatsEntity) => void;
   };
 }
 
@@ -26,81 +25,76 @@ export interface AgentEntity {
   id: string;
   agentId: bigint;
   owner: string;
-  walletAddress: string;
-  agentCardURI: string;
-  isCleanverseVerified: boolean;
-  totalCompletedJobs: bigint;
-  totalDisputedJobs: bigint;
-  totalEarned: bigint;
-  averageScore: number;
-  feedbackCount: bigint;
-  registeredAt: bigint;
-}
-
-export interface FeedbackEntity {
-  id: string;
-  agent_id: string;
-  reviewer: string;
-  score: number;
-  tag: string;
-  comments: string;
-  jobHash: string;
-  timestamp: bigint;
+  verifiedAt: bigint;
+  totalJobsAsPoster: bigint;
+  totalJobsAsWorker: bigint;
+  successfulJobs: bigint;
+  failedJobs: bigint;
+  nansenScore: bigint;
+  activeStake: bigint;
+  slashedCount: bigint;
 }
 
 export interface JobEntity {
   id: string;
   jobId: bigint;
-  employerAgent_id: string;
-  workerAgent_id: string;
-  employerWallet: string;
-  workerWallet: string;
-  paymentAmount: bigint;
-  workerStakeRequired: bigint;
-  workerStakeDeposited: bigint;
-  challengePeriodSeconds: bigint;
+  poster_id: string;
+  worker_id?: string;
+  amount: bigint;
+  deliverableSpec: string;
+  proofHash?: string;
   challengeDeadline?: bigint;
-  status: "CREATED" | "ACCEPTED" | "DELIVERED" | "SETTLED" | "DISPUTED" | "RESOLVED" | "CANCELLED";
-  jobSpecHash: string;
-  deliveryHash?: string;
-  deliveryURI?: string;
-  disputeInitiator?: string;
-  disputeReason?: string;
-  disputeFavorWorker?: boolean;
-  disputeResolutionNotes?: string;
+  status: "CREATED" | "ACCEPTED" | "DELIVERED" | "CONFIRMED" | "DISPUTED" | "RESOLVED";
+  disputer?: string;
+  winnerId?: bigint;
+  loserId?: bigint;
+  slashedAmount?: bigint;
   createdAt: bigint;
   deliveredAt?: bigint;
-  settledAt?: bigint;
+  confirmedAt?: bigint;
+  disputedAt?: bigint;
+  resolvedAt?: bigint;
 }
 
-export interface ProtocolStatsEntity {
+export interface SlashEntity {
   id: string;
-  totalVolume: bigint;
-  totalJobs: bigint;
-  settledJobs: bigint;
-  disputedJobs: bigint;
-  totalAgentsRegistered: bigint;
-  cleanverseVerifiedAgents: bigint;
+  agent_id: string;
+  amount: bigint;
+  reason: string;
+  recipient: string;
+  timestamp: bigint;
 }
 
-async function getOrCreateProtocolStats(context: EventContext): Promise<ProtocolStatsEntity> {
-  const existing = await context.protocolStats.get("global");
+export interface StatsEntity {
+  id: string;
+  totalRegisteredAgents: bigint;
+  totalJobsCreated: bigint;
+  totalJobsConfirmed: bigint;
+  totalJobsDisputed: bigint;
+  totalVolumeEscrowed: bigint;
+  totalVolumeSettled: bigint;
+  totalCollateralSlashed: bigint;
+}
+
+async function getOrCreateStats(context: EventContext): Promise<StatsEntity> {
+  const existing = await context.marketplaceProtocolStats.get("global");
   if (existing) return existing;
-  const initial: ProtocolStatsEntity = {
+  const initial: StatsEntity = {
     id: "global",
-    totalVolume: 0n,
-    totalJobs: 0n,
-    settledJobs: 0n,
-    disputedJobs: 0n,
-    totalAgentsRegistered: 0n,
-    cleanverseVerifiedAgents: 0n,
+    totalRegisteredAgents: 0n,
+    totalJobsCreated: 0n,
+    totalJobsConfirmed: 0n,
+    totalJobsDisputed: 0n,
+    totalVolumeEscrowed: 0n,
+    totalVolumeSettled: 0n,
+    totalCollateralSlashed: 0n,
   };
-  context.protocolStats.set(initial);
+  context.marketplaceProtocolStats.set(initial);
   return initial;
 }
 
 // ==============================================================================
-// 1. IdentityRegistry Handlers (ERC-8004)
+// 1. IdentityRegistry Handlers
 // ==============================================================================
 
 export async function handleAgentRegistered(
@@ -108,10 +102,8 @@ export async function handleAgentRegistered(
     params: {
       agentId: bigint;
       owner: string;
-      walletAddress: string;
-      agentCardURI: string;
+      verifiedAt: bigint;
     };
-    block: { timestamp: number };
   },
   context: EventContext
 ): Promise<void> {
@@ -120,191 +112,84 @@ export async function handleAgentRegistered(
     id: agentIdStr,
     agentId: event.params.agentId,
     owner: event.params.owner.toLowerCase(),
-    walletAddress: event.params.walletAddress.toLowerCase(),
-    agentCardURI: event.params.agentCardURI,
-    isCleanverseVerified: false,
-    totalCompletedJobs: 0n,
-    totalDisputedJobs: 0n,
-    totalEarned: 0n,
-    averageScore: 0,
-    feedbackCount: 0n,
-    registeredAt: BigInt(event.block.timestamp),
+    verifiedAt: event.params.verifiedAt,
+    totalJobsAsPoster: 0n,
+    totalJobsAsWorker: 0n,
+    successfulJobs: 0n,
+    failedJobs: 0n,
+    nansenScore: 0n,
+    activeStake: 0n,
+    slashedCount: 0n,
   };
   context.agent.set(agent);
 
-  const stats = await getOrCreateProtocolStats(context);
-  stats.totalAgentsRegistered += 1n;
-  context.protocolStats.set(stats);
-}
-
-export async function handleAgentCardUpdated(
-  event: {
-    params: {
-      agentId: bigint;
-      newURI: string;
-    };
-  },
-  context: EventContext
-): Promise<void> {
-  const agent = await context.agent.get(event.params.agentId.toString());
-  if (agent) {
-    agent.agentCardURI = event.params.newURI;
-    context.agent.set(agent);
-  }
-}
-
-export async function handleCleanverseVerificationUpdated(
-  event: {
-    params: {
-      agentId: bigint;
-      verified: boolean;
-    };
-  },
-  context: EventContext
-): Promise<void> {
-  const agent = await context.agent.get(event.params.agentId.toString());
-  if (agent) {
-    const wasVerified = agent.isCleanverseVerified;
-    agent.isCleanverseVerified = event.params.verified;
-    context.agent.set(agent);
-
-    const stats = await getOrCreateProtocolStats(context);
-    if (!wasVerified && event.params.verified) {
-      stats.cleanverseVerifiedAgents += 1n;
-    } else if (wasVerified && !event.params.verified) {
-      stats.cleanverseVerifiedAgents -= 1n;
-    }
-    context.protocolStats.set(stats);
-  }
+  const stats = await getOrCreateStats(context);
+  stats.totalRegisteredAgents += 1n;
+  context.marketplaceProtocolStats.set(stats);
 }
 
 // ==============================================================================
-// 2. ReputationRegistry Handlers (ERC-8004)
-// ==============================================================================
-
-export async function handleFeedbackSubmitted(
-  event: {
-    params: {
-      agentId: bigint;
-      reviewer: string;
-      score: number;
-      tag: string;
-      jobHash: string;
-    };
-    block: { timestamp: number };
-    transaction: { hash: string };
-  },
-  context: EventContext
-): Promise<void> {
-  const agentIdStr = event.params.agentId.toString();
-  const agent = await context.agent.get(agentIdStr);
-
-  if (agent) {
-    const currentCount = Number(agent.feedbackCount);
-    const newAverage = Math.round(
-      (agent.averageScore * currentCount + event.params.score) / (currentCount + 1)
-    );
-    agent.averageScore = newAverage;
-    agent.feedbackCount += 1n;
-    context.agent.set(agent);
-  }
-
-  const feedbackId = `${agentIdStr}-${event.transaction.hash}`;
-  const feedback: FeedbackEntity = {
-    id: feedbackId,
-    agent_id: agentIdStr,
-    reviewer: event.params.reviewer.toLowerCase(),
-    score: event.params.score,
-    tag: event.params.tag,
-    comments: "",
-    jobHash: event.params.jobHash,
-    timestamp: BigInt(event.block.timestamp),
-  };
-  context.feedback.set(feedback);
-}
-
-export async function handleJobSettlementRecorded(
-  event: {
-    params: {
-      agentId: bigint;
-      paymentAmount: bigint;
-      success: boolean;
-    };
-  },
-  context: EventContext
-): Promise<void> {
-  const agent = await context.agent.get(event.params.agentId.toString());
-  if (agent) {
-    if (event.params.success) {
-      agent.totalCompletedJobs += 1n;
-      agent.totalEarned += event.params.paymentAmount;
-    } else {
-      agent.totalDisputedJobs += 1n;
-    }
-    context.agent.set(agent);
-  }
-}
-
-// ==============================================================================
-// 3. PaymentSettlement Handlers (x402)
+// 2. PaymentSettlement Handlers
 // ==============================================================================
 
 export async function handleJobCreated(
   event: {
     params: {
       jobId: bigint;
-      employerAgentId: bigint;
-      workerAgentId: bigint;
-      paymentAmount: bigint;
-      workerStakeRequired: bigint;
-      challengePeriodSeconds: bigint;
+      posterId: bigint;
+      amount: bigint;
+      deliverableSpec: string;
     };
     block: { timestamp: number };
   },
   context: EventContext
 ): Promise<void> {
   const jobIdStr = event.params.jobId.toString();
-  const employerAgent = await context.agent.get(event.params.employerAgentId.toString());
-  const workerAgent = await context.agent.get(event.params.workerAgentId.toString());
+  const posterIdStr = event.params.posterId.toString();
 
   const job: JobEntity = {
     id: jobIdStr,
     jobId: event.params.jobId,
-    employerAgent_id: event.params.employerAgentId.toString(),
-    workerAgent_id: event.params.workerAgentId.toString(),
-    employerWallet: employerAgent?.walletAddress ?? "",
-    workerWallet: workerAgent?.walletAddress ?? "",
-    paymentAmount: event.params.paymentAmount,
-    workerStakeRequired: event.params.workerStakeRequired,
-    workerStakeDeposited: 0n,
-    challengePeriodSeconds: event.params.challengePeriodSeconds,
+    poster_id: posterIdStr,
+    amount: event.params.amount,
+    deliverableSpec: event.params.deliverableSpec,
     status: "CREATED",
-    jobSpecHash: "",
     createdAt: BigInt(event.block.timestamp),
   };
   context.job.set(job);
 
-  const stats = await getOrCreateProtocolStats(context);
-  stats.totalJobs += 1n;
-  stats.totalVolume += event.params.paymentAmount;
-  context.protocolStats.set(stats);
+  const poster = await context.agent.get(posterIdStr);
+  if (poster) {
+    poster.totalJobsAsPoster += 1n;
+    context.agent.set(poster);
+  }
+
+  const stats = await getOrCreateStats(context);
+  stats.totalJobsCreated += 1n;
+  stats.totalVolumeEscrowed += event.params.amount;
+  context.marketplaceProtocolStats.set(stats);
 }
 
 export async function handleJobAccepted(
   event: {
     params: {
       jobId: bigint;
-      workerAgentId: bigint;
-      stakeDeposited: bigint;
+      workerId: bigint;
     };
   },
   context: EventContext
 ): Promise<void> {
   const job = await context.job.get(event.params.jobId.toString());
   if (job) {
+    job.worker_id = event.params.workerId.toString();
     job.status = "ACCEPTED";
-    job.workerStakeDeposited = event.params.stakeDeposited;
     context.job.set(job);
+
+    const worker = await context.agent.get(event.params.workerId.toString());
+    if (worker) {
+      worker.totalJobsAsWorker += 1n;
+      context.agent.set(worker);
+    }
   }
 }
 
@@ -312,8 +197,7 @@ export async function handleDeliverySubmitted(
   event: {
     params: {
       jobId: bigint;
-      deliveryHash: string;
-      deliveryURI: string;
+      proofHash: string;
       challengeDeadline: bigint;
     };
     block: { timestamp: number };
@@ -322,21 +206,20 @@ export async function handleDeliverySubmitted(
 ): Promise<void> {
   const job = await context.job.get(event.params.jobId.toString());
   if (job) {
-    job.status = "DELIVERED";
-    job.deliveryHash = event.params.deliveryHash;
-    job.deliveryURI = event.params.deliveryURI;
+    job.proofHash = event.params.proofHash;
     job.challengeDeadline = event.params.challengeDeadline;
+    job.status = "DELIVERED";
     job.deliveredAt = BigInt(event.block.timestamp);
     context.job.set(job);
   }
 }
 
-export async function handleJobSettled(
+export async function handleDeliveryConfirmed(
   event: {
     params: {
       jobId: bigint;
       workerWallet: string;
-      totalPayout: bigint;
+      amount: bigint;
     };
     block: { timestamp: number };
   },
@@ -344,36 +227,37 @@ export async function handleJobSettled(
 ): Promise<void> {
   const job = await context.job.get(event.params.jobId.toString());
   if (job) {
-    job.status = "SETTLED";
-    job.settledAt = BigInt(event.block.timestamp);
+    job.status = "CONFIRMED";
+    job.confirmedAt = BigInt(event.block.timestamp);
     context.job.set(job);
 
-    const stats = await getOrCreateProtocolStats(context);
-    stats.settledJobs += 1n;
-    context.protocolStats.set(stats);
+    const stats = await getOrCreateStats(context);
+    stats.totalJobsConfirmed += 1n;
+    stats.totalVolumeSettled += event.params.amount;
+    context.marketplaceProtocolStats.set(stats);
   }
 }
 
-export async function handleDisputeRaised(
+export async function handleDeliveryDisputed(
   event: {
     params: {
       jobId: bigint;
       disputer: string;
-      reason: string;
     };
+    block: { timestamp: number };
   },
   context: EventContext
 ): Promise<void> {
   const job = await context.job.get(event.params.jobId.toString());
   if (job) {
     job.status = "DISPUTED";
-    job.disputeInitiator = event.params.disputer.toLowerCase();
-    job.disputeReason = event.params.reason;
+    job.disputer = event.params.disputer.toLowerCase();
+    job.disputedAt = BigInt(event.block.timestamp);
     context.job.set(job);
 
-    const stats = await getOrCreateProtocolStats(context);
-    stats.disputedJobs += 1n;
-    context.protocolStats.set(stats);
+    const stats = await getOrCreateStats(context);
+    stats.totalJobsDisputed += 1n;
+    context.marketplaceProtocolStats.set(stats);
   }
 }
 
@@ -381,32 +265,126 @@ export async function handleDisputeResolved(
   event: {
     params: {
       jobId: bigint;
-      favorWorker: boolean;
-      resolutionNotes: string;
+      winnerId: bigint;
+      loserId: bigint;
+      slashedAmount: bigint;
     };
+    block: { timestamp: number };
   },
   context: EventContext
 ): Promise<void> {
   const job = await context.job.get(event.params.jobId.toString());
   if (job) {
     job.status = "RESOLVED";
-    job.disputeFavorWorker = event.params.favorWorker;
-    job.disputeResolutionNotes = event.params.resolutionNotes;
+    job.winnerId = event.params.winnerId;
+    job.loserId = event.params.loserId;
+    job.slashedAmount = event.params.slashedAmount;
+    job.resolvedAt = BigInt(event.block.timestamp);
     context.job.set(job);
   }
 }
 
-export async function handleJobCancelled(
+// ==============================================================================
+// 3. StakeManager Handlers
+// ==============================================================================
+
+export async function handleSlashed(
   event: {
     params: {
-      jobId: bigint;
+      agentId: bigint;
+      amount: bigint;
+      reason: string;
+      recipient: string;
+    };
+    block: { timestamp: number };
+    transaction: { hash: string };
+  },
+  context: EventContext
+): Promise<void> {
+  const agentIdStr = event.params.agentId.toString();
+  const agent = await context.agent.get(agentIdStr);
+  if (agent) {
+    if (agent.activeStake >= event.params.amount) {
+      agent.activeStake -= event.params.amount;
+    } else {
+      agent.activeStake = 0n;
+    }
+    agent.slashedCount += 1n;
+    context.agent.set(agent);
+  }
+
+  const slashId = `${event.transaction.hash}-${agentIdStr}`;
+  const slashEntity: SlashEntity = {
+    id: slashId,
+    agent_id: agentIdStr,
+    amount: event.params.amount,
+    reason: event.params.reason,
+    recipient: event.params.recipient.toLowerCase(),
+    timestamp: BigInt(event.block.timestamp),
+  };
+  context.slashEvent.set(slashEntity);
+
+  const stats = await getOrCreateStats(context);
+  stats.totalCollateralSlashed += event.params.amount;
+  context.marketplaceProtocolStats.set(stats);
+}
+
+export async function handleStaked(
+  event: {
+    params: {
+      agentId: bigint;
+      staker: string;
+      amount: bigint;
     };
   },
   context: EventContext
 ): Promise<void> {
-  const job = await context.job.get(event.params.jobId.toString());
-  if (job) {
-    job.status = "CANCELLED";
-    context.job.set(job);
+  const agent = await context.agent.get(event.params.agentId.toString());
+  if (agent) {
+    agent.activeStake += event.params.amount;
+    context.agent.set(agent);
+  }
+}
+
+// ==============================================================================
+// 4. ReputationRegistry Handlers
+// ==============================================================================
+
+export async function handleOutcomeRecorded(
+  event: {
+    params: {
+      agentId: bigint;
+      success: boolean;
+      counterpartyId: bigint;
+      timestamp: bigint;
+    };
+  },
+  context: EventContext
+): Promise<void> {
+  const agent = await context.agent.get(event.params.agentId.toString());
+  if (agent) {
+    if (event.params.success) {
+      agent.successfulJobs += 1n;
+    } else {
+      agent.failedJobs += 1n;
+    }
+    context.agent.set(agent);
+  }
+}
+
+export async function handleExternalSignalUpdated(
+  event: {
+    params: {
+      agentId: bigint;
+      nansenScore: bigint;
+      timestamp: bigint;
+    };
+  },
+  context: EventContext
+): Promise<void> {
+  const agent = await context.agent.get(event.params.agentId.toString());
+  if (agent) {
+    agent.nansenScore = event.params.nansenScore;
+    context.agent.set(agent);
   }
 }
